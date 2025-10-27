@@ -22,13 +22,11 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    dates = pd.date_range(
-        start=datetime.strptime(args.start, "%m%y"),
-        end=datetime.strptime(args.end, "%m%y"),
-        freq='MS'
-    ).tolist()
-
-    bank_accounts = [SoFi("Checking"), SoFi("Savings"), Apple("Savings"), PNC("Checking"), PNC("Savings")]
-    for account in bank_accounts:
-        account.load_transactions(dates)
-        account.normalize()
+    Advisor(
+        [SoFi("Checking"), SoFi("Savings"), Apple("Savings"), PNC("Checking"), PNC("Savings")],
+        pd.date_range(
+            start=datetime.strptime(args.start, "%m%y"),
+            end=datetime.strptime(args.end, "%m%y"),
+            freq='MS'
+        ).tolist()
+    ).start()
