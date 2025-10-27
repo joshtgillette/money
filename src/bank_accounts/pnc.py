@@ -1,0 +1,19 @@
+from bank_accounts.bank_account import BankAccount
+import pandas as pd
+
+class PNC(BankAccount):
+
+    def __init__(self, type: str = ""):
+        super().__init__("PNC", type)
+        self.raw_transactions = pd.DataFrame()
+
+    def normalize(self):
+        """Convert PNC's CSV format to standard transaction format."""
+        if self.raw_transactions.empty:
+            return
+
+        self.transactions = pd.DataFrame({
+            'date': pd.to_datetime(self.raw_transactions['Transaction Date']),
+            'amount': pd.to_numeric(self.raw_transactions['Amount'].str.replace(r'[\+\$\s]', '', regex=True)),
+            'description': self.raw_transactions['Transaction Description']
+        }).sort_values('date').reset_index(drop=True)
