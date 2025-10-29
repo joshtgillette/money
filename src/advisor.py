@@ -4,10 +4,10 @@ from report import Report
 
 class Advisor:
 
-    def __init__(self, accounts: list[str], dates: list[datetime]):
+    def __init__(self, accounts: list[str], months: list[datetime]):
         self.accounts = accounts
-        self.dates = dates
-        self.report = Report()
+        self.months = months
+        self.report = Report(self.months)
 
     def start(self):
         self.load_and_normalize_data()
@@ -16,18 +16,20 @@ class Advisor:
 
     def load_and_normalize_data(self):
         for account in self.accounts:
-            account.load_transactions(self.dates)
+            account.load_transactions(self.months)
             account.normalize()
 
-    def calculate(self):
-        # Aggregate all account transactions, add an account identifier, reorder and sort
-        all_transactions = []
+    def aggregate_transactions(self):
+        transactions = []
         for account in self.accounts:
             transactions_with_account = account.transactions.copy()
             transactions_with_account['account'] = account.name
-            all_transactions.append(transactions_with_account)
-        all_transactions = pd.concat(all_transactions, ignore_index=True)[['date', 'account', 'amount', 'description']].sort_values('date').reset_index(drop=True)
+            transactions.append(transactions_with_account)
+        transactions = pd.concat(transactions, ignore_index=True)
 
-        # Provide transactions to report with reordered columns and sorted transactions by date
-        self.report.all_transactions = all_transactions
-        self.report.total_spent = self.report.all_transactions['amount'].sum()
+        return transactions[['date', 'account', 'amount', 'description']].sort_values('date').reset_index(drop=True)
+
+    def calculate(self):
+        # Aggregate all account transactions, reorder and sort, calculate total spent
+        self.report.transactions = self.aggregate_transactions()
+        self.report.total_spent = self.report.transactions['amount'].sum()

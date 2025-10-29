@@ -3,17 +3,17 @@ import pandas as pd
 
 class Report:
 
-    def __init__(self):
+    def __init__(self, months):
+        self.months = months
+        self.total_spent = 0
+        self.transactions = pd.DataFrame()
+
         # Create report directory if it doesn't exist
         os.makedirs('report', exist_ok=True)
 
-        # Info in report
-        self.total_spent = 0
-        self.all_transactions = pd.DataFrame()
-
     def write(self):
         # Export all transactions to CSV
-        self.all_transactions.to_csv('report/all_transactions.csv', index=False)
+        self.transactions.to_csv(f"report/all transactions from {self.months[0].strftime('%m%y')} to {self.months[-1].strftime('%m%y')}.csv", index=False)
 
         # Record total spent
         print(f"total spent: {self.total_spent}")
