@@ -20,6 +20,10 @@ class Advisor:
             account.load_transactions(self.months)
             account.normalize()
 
+        self.report.note(f"loaded transactions for {len(self.accounts)} accounts with {sum(len(account.transactions) for account in self.accounts)} total transactions\n")
+        self.report.transactions = self.aggregate_transactions()
+
+
     def remove_internal_transfers(self):
         """
         phase 1: find candidate transfers -
@@ -34,9 +38,12 @@ class Advisor:
         repeat these phases until transfers are no longer removed
         """
 
+        pass_count = net_removed = 0
         transfers_by_description = {}
         transactions = self.aggregate_transactions()
         while True:
+            pass_count += 1
+
             # Build candidate transfer mapping
             for transaction in transactions.itertuples(index=False):
                 counter_transactions = transactions[transactions['amount'] == -transaction.amount]
@@ -96,17 +103,19 @@ class Advisor:
                     # Transaction is confirmed to be a transfer!
                     transfer = transaction
                     transfers_to_remove.update([transfer.Index, counter_transfer.index[0]])
+                    net_removed += transfer.amount + counter_transfer.iloc[0].amount
 
                     # Found a transfer pair, mark both for removal
-                    transfers_to_remove.update([transaction.Index, counter_transfer.index[0]])
+                    self.report.note(f"removing transfer of ${abs(transfer.amount)} from {from_account} to {to_account} ({transfer.description})")
+                    self.report.note(f"removing transfer of ${abs(transfer.amount)} from {to_account} to {from_account} ({counter_transfer.iloc[0].description})")
 
-            transactions_no_transfers = transactions.drop(index=transfers_to_remove)
-            if len(transactions_no_transfers) == len(transactions):
+            if not transfers_to_remove:
                 break
-            transactions = transactions_no_transfers
 
-        # Remove transfers from transactions
-        self.report.transactions_no_transfers = transactions.drop(index=transfers_to_remove)
+            transactions = transactions.drop(index=transfers_to_remove)
+            self.report.note(f"{len(transfers_to_remove)} transfers removed in pass {pass_count} with net ${net_removed}\n")
+
+        self.report.transactions_no_transfers = transactions
 
     def aggregate_transactions(self):
         transactions = []
@@ -120,5 +129,5 @@ class Advisor:
 
     def calculate(self):
         # Aggregate all account transactions, reorder and sort, calculate total spent
-        self.report.transactions = self.aggregate_transactions()
-        self.report.total_spent = self.report.transactions['amount'].sum()
+        self.report.note("performing calculations..")
+        self.report.total_spent = self.report.transactions_no_transfers['amount'].sum()
