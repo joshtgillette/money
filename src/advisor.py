@@ -7,22 +7,21 @@ class Advisor:
     def __init__(self, accounts: list[str], months: list[datetime]):
         self.accounts = accounts
         self.months = months
-        self.report = Report(self.months)
+        self.report = Report()
 
     def start(self):
         self.load_and_normalize_data()
         self.remove_internal_transfers()
         self.calculate()
-        self.report.write()
 
     def load_and_normalize_data(self):
         for account in self.accounts:
             account.load_transactions(self.months)
             account.normalize()
 
-        self.report.note(f"loaded transactions for {len(self.accounts)} accounts with {sum(len(account.transactions) for account in self.accounts)} total transactions\n")
-        self.report.transactions = self.aggregate_transactions()
-
+        self.report.note(f"loaded transactions for {len(self.accounts)} accounts "
+                         f"with {sum(len(account.transactions) for account in self.accounts)} total transactions\n")
+        self.report.write_transactions(self.aggregate_transactions(), "all transactions.csv")
 
     def remove_internal_transfers(self):
         """
@@ -115,7 +114,7 @@ class Advisor:
             transactions = transactions.drop(index=transfers_to_remove)
             self.report.note(f"{len(transfers_to_remove)} transfers removed in pass {pass_count} with net ${net_removed}\n")
 
-        self.report.transactions_no_transfers = transactions
+        self.report.write_transactions(transactions, "transactions no transfers")
 
     def aggregate_transactions(self):
         transactions = []
@@ -130,4 +129,3 @@ class Advisor:
     def calculate(self):
         # Aggregate all account transactions, reorder and sort, calculate total spent
         self.report.note("performing calculations..")
-        self.report.total_spent = self.report.transactions_no_transfers['amount'].sum()
