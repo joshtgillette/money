@@ -1,4 +1,4 @@
-from bank_accounts.bank_account import BankAccount
+from banking.accounts.bank_account import BankAccount
 import pandas as pd
 
 class SoFi(BankAccount):

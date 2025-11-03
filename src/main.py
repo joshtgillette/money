@@ -1,7 +1,8 @@
 from argparse import ArgumentParser
-from bank_accounts.sofi import SoFi
-from bank_accounts.apple import Apple
-from bank_accounts.pnc import PNC
+from banking.banker import Banker
+from banking.accounts.sofi import SoFi
+from banking.accounts.apple import Apple
+from banking.accounts.pnc import PNC
 from datetime import datetime
 from advisor import Advisor
 import pandas as pd
@@ -23,10 +24,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     Advisor(
-        [SoFi("Checking"), SoFi("Savings"), Apple("Savings"), PNC("Checking"), PNC("Savings")],
         pd.date_range(
             start=datetime.strptime(args.start, "%m%y"),
             end=datetime.strptime(args.end, "%m%y"),
             freq='MS'
-        ).tolist()
+        ).tolist(),
+        Banker(SoFi("Checking"), SoFi("Savings"), Apple("Savings"), PNC("Checking"), PNC("Savings"))
     ).start()
