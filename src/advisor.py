@@ -119,6 +119,9 @@ class Advisor:
     def aggregate_transactions(self):
         transactions = []
         for account in self.accounts:
+            if account.transactions.empty:
+                continue
+
             transactions_with_account = account.transactions.copy()
             transactions_with_account['account'] = account.name
             transactions.append(transactions_with_account)
