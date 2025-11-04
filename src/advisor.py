@@ -22,5 +22,16 @@ class Advisor:
         self.calculate()
 
     def calculate(self):
-        # Aggregate all account transactions, reorder and sort, calculate total spent
-        self.report.note("performing calculations..")
+        total_interest = 0.0
+        for account in self.banker.accounts:
+            account_interest = 0.0
+            for transaction in self.banker.transactions_no_transfers[
+                    self.banker.transactions_no_transfers['account'] == account.name
+                ].itertuples(index=False):
+                if account.is_transaction_interest(transaction):
+                    account_interest += transaction.amount
+
+            self.report.note(f"{account.name} earned ${account_interest:.2f} in interest")
+            total_interest += account_interest
+
+        self.report.note(f"\ntotal interest income: ${total_interest:.2f}")

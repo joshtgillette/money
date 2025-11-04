@@ -17,3 +17,8 @@ class PNC(BankAccount):
             'amount': pd.to_numeric(self.raw_transactions['Amount'].str.replace(r'[\+\$\s]', '', regex=True)),
             'description': self.raw_transactions['Transaction Description']
         }).sort_values('date').reset_index(drop=True)
+
+    def is_transaction_interest(self, transaction: pd.Series) -> bool:
+        """Determine if a normalized transaction is interest income."""
+        return (super().is_transaction_interest(transaction) and
+                'INTEREST PAYMENT' in transaction.description)

@@ -21,3 +21,8 @@ class Apple(BankAccount):
                 ),
             'description': self.raw_transactions['Description']
         }).sort_values('date').reset_index(drop=True)
+
+    def is_transaction_interest(self, transaction: pd.Series) -> bool:
+        """Determine if a normalized transaction is interest income."""
+        return (super().is_transaction_interest(transaction) and
+                'Interest Paid' in transaction.description)
