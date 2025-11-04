@@ -34,3 +34,14 @@ class BankAccount(ABC):
         standard format with columns: ['date', 'description', 'amount']
         """
         pass
+
+    def is_transaction_interest(self, transaction: pd.Series) -> bool:
+        """Determine if a normalized transaction is interest income.
+
+        This method must be implemented by each bank-specific subclass
+        to identify interest income transactions based on their unique
+        characteristics.
+        """
+
+        return (transaction.amount > 0 and
+                "interest" in transaction.description.lower())
