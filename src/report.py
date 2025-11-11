@@ -14,6 +14,10 @@ class Report:
         os.makedirs(self.PATH, exist_ok=True)
         os.makedirs(self.DATA_PATH, exist_ok=True)
 
+    def note_header(self, label: str):
+        with open(self.NOTES_FILE, "a") as note_file:
+            note_file.write(f"\n{'='*10} {label} {'='*10}\n\n")
+
     def note(self, message: str):
         with open(self.NOTES_FILE, "a") as note_file:
             note_file.write(f"{message}\n")

@@ -11,6 +11,7 @@ class Advisor:
 
     def start(self):
         # Direct the banker to load transactions for the specified months
+        self.report.note_header("TRANSFER REMOVAL")
         self.banker.load(self.months)
         self.report.note(self.banker.get_log())
         self.report.note(f"loaded {len(self.banker.accounts)} bank accounts "
@@ -19,6 +20,8 @@ class Advisor:
         # Write transactions data to the report
         self.report.write_transactions(self.banker.transactions, "all transactions")
         self.report.write_transactions(self.banker.transactions_no_transfers, "transactions no transfers")
+
+        self.report.note_header("INTEREST CALCULATION")
         self.calculate()
 
     def calculate(self):
