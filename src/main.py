@@ -3,6 +3,8 @@ from banking.banker import Banker
 from banking.accounts.sofi import SoFi
 from banking.accounts.apple import Apple
 from banking.accounts.pnc import PNC
+from tracking.tracker import Tracker
+from tracking.categories.income import Income
 from datetime import datetime
 from advisor import Advisor
 import pandas as pd
@@ -29,5 +31,6 @@ if __name__ == "__main__":
             end=datetime.strptime(args.end, "%m%y"),
             freq='MS'
         ).tolist(),
-        Banker(SoFi("Checking"), SoFi("Savings"), Apple("Savings"), PNC("Checking"), PNC("Savings"))
+        Banker(SoFi("Checking"), SoFi("Savings"), Apple("Savings"), PNC("Checking"), PNC("Savings")),
+        Tracker(Income("income"))
     ).start()
