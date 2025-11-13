@@ -1,10 +1,10 @@
-import pandas as pd
+from banking.banker import Banker
 
 class Tracker:
 
     def __init__(self, *categories):
         self.categories = categories
 
-    def track(self, transactions: pd.DataFrame):
+    def track(self, banker: Banker):
         for category in self.categories:
-            category.screen(transactions)
+            category.filter(banker)

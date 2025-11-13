@@ -18,6 +18,11 @@ class Banker:
         self.transactions = self.aggregate_transactions()
         self.transactions_no_transfers = self.remove_transfers()
 
+    def __iter__(self):
+        for account in self.accounts:
+            for _, transaction in account.transactions.iterrows():
+                yield account, transaction
+
     def aggregate_transactions(self):
         transactions = []
         for account in self.accounts:

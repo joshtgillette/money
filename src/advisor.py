@@ -24,7 +24,7 @@ class Advisor:
         self.report.write_transactions(self.banker.transactions_no_transfers, "transactions no transfers")
 
         self.report.note_header("CATEGORY TRACKING")
-        self.tracker.track(self.banker.transactions_no_transfers)
+        self.tracker.track(self.banker)
         for category in self.tracker.categories:
             self.report.note(f"categorized {len(category.transactions)} transactions as {category.label} "
                              f"totaling ${category.transactions['amount'].sum():,.2f}")
