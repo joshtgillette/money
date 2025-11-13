@@ -1,6 +1,6 @@
 from datetime import datetime
 from banking.banker import Banker
-from categories.category import Category
+from tracking.category import Category
 from report import Report
 
 class Advisor:

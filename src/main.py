@@ -3,8 +3,8 @@ from banking.banker import Banker
 from banking.accounts.sofi import SoFi
 from banking.accounts.apple import Apple
 from banking.accounts.pnc import PNC
-from categories.income import Income
-from categories.interest import Interest
+from tracking.categories.income import Income
+from tracking.categories.interest import Interest
 from datetime import datetime
 from advisor import Advisor
 import pandas as pd
