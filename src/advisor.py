@@ -1,31 +1,35 @@
 from datetime import datetime
 from banking.banker import Banker
+from tracking.category import Category
 from report import Report
-from tracking.tracker import Tracker
 
 class Advisor:
 
-    def __init__(self, months: list[datetime], banker: Banker, tracker: Tracker):
+    def __init__(self, months: list[datetime], banker: Banker, categories: list[Category]):
         self.months = months
         self.banker = banker
-        self.tracker = tracker
+        self.categories = categories
         self.report = Report()
 
     def start(self):
         # Direct the banker to load transactions for the specified months
         self.report.note_header("TRANSFER REMOVAL")
         self.banker.load(self.months)
+
+        transactions = self.banker.get_transactions()
+        transactions_no_transfers = self.banker.get_transactions(is_transfer=False)
         self.report.note(self.banker.get_log())
         self.report.note(f"loaded {len(self.banker.accounts)} bank accounts "
-                         f"with {len(self.banker.transactions)} total transactions, {len(self.banker.transactions_no_transfers)} without transfers\n")
+                         f"with {len(transactions)} total transactions, "
+                         f"{len(transactions_no_transfers)} without transfers\n")
 
         # Write transactions data to the report
-        self.report.write_transactions(self.banker.transactions, "all transactions")
-        self.report.write_transactions(self.banker.transactions_no_transfers, "transactions no transfers")
+        self.report.write_transactions(transactions, "all transactions")
+        self.report.write_transactions(transactions_no_transfers, "transactions no transfers")
 
         self.report.note_header("CATEGORY TRACKING")
-        self.tracker.track(self.banker.transactions_no_transfers)
-        for category in self.tracker.categories:
+        for category in self.categories:
+            category.filter(self.banker)
             self.report.note(f"categorized {len(category.transactions)} transactions as {category.label} "
                              f"totaling ${category.transactions['amount'].sum():,.2f}")
             self.report.write_transactions(category.transactions, f"{category.label} transactions")

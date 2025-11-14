@@ -35,6 +35,18 @@ class BankAccount(ABC):
         """
         pass
 
+    @abstractmethod
+    def is_transaction_income(self, transaction: pd.Series) -> bool:
+        """Determine if a normalized transaction is income.
+
+        This method must be implemented by each bank-specific subclass
+        to identify income transactions based on their unique
+        characteristics.
+        """
+
+        return transaction.amount > 0
+
+    @abstractmethod
     def is_transaction_interest(self, transaction: pd.Series) -> bool:
         """Determine if a normalized transaction is interest income.
 
