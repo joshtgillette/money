@@ -17,12 +17,12 @@ class Advisor:
         self.banker.load(self.months)
         self.report.note(self.banker.get_log())
         self.report.note(f"loaded {len(self.banker.accounts)} bank accounts "
-                         f"with {len(self.banker.transactions)} total transactions, "
-                         f"{len(self.banker.transactions_no_transfers)} without transfers\n")
+                         f"with {len(self.banker.get_transactions())} total transactions, "
+                         f"{len(self.banker.get_transactions(is_transfer=False))} without transfers\n")
 
         # Write transactions data to the report
-        self.report.write_transactions(self.banker.transactions, "all transactions")
-        self.report.write_transactions(self.banker.transactions_no_transfers, "transactions no transfers")
+        self.report.write_transactions(self.banker.get_transactions(), "all transactions")
+        self.report.write_transactions(self.banker.get_transactions(is_transfer=False), "transactions no transfers")
 
         self.report.note_header("CATEGORY TRACKING")
         for category in self.categories:

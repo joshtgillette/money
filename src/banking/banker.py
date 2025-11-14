@@ -6,17 +6,22 @@ class Banker:
     def __init__(self, *accounts):
         self.accounts = list(accounts)
         self.transactions = pd.DataFrame()
-        self.transactions_no_transfers = pd.DataFrame()
         self.log = []
 
     def load(self, months: list[datetime]):
         for account in self.accounts:
             account.load_transactions(months)
             account.normalize()
+            account.transactions["is_transfer"] = False
 
+        self.aggregate_transactions()
+        self.remove_transfers()
 
-        self.transactions = self.aggregate_transactions()
-        self.transactions_no_transfers = self.remove_transfers()
+    def get_transactions(self, is_transfer=None):
+        if is_transfer is None:
+            return self.transactions
+
+        return self.transactions[self.transactions['is_transfer'] == is_transfer]
 
     def __iter__(self):
         for account in self.accounts:
@@ -24,17 +29,16 @@ class Banker:
                 yield account, transaction
 
     def aggregate_transactions(self):
-        transactions = []
+        self.transactions = []
         for account in self.accounts:
             if account.transactions.empty:
                 continue
 
             transactions_with_account = account.transactions.copy()
             transactions_with_account['account'] = account.name
-            transactions.append(transactions_with_account)
-        transactions = pd.concat(transactions, ignore_index=True)
-
-        return transactions[['date', 'account', 'amount', 'description']].sort_values('date').reset_index(drop=True)
+            self.transactions.append(transactions_with_account)
+        self.transactions = pd.concat(self.transactions, ignore_index=True)
+        self.transactions = self.transactions[['date', 'account', 'amount', 'description', 'is_transfer']].sort_values('date').reset_index(drop=True)
 
     def remove_transfers(self):
         """
@@ -50,30 +54,26 @@ class Banker:
         repeat these phases until transfers are no longer removed
         """
 
-        pass_count = net_removed = 0
+        pass_num = removed_in_pass = net_amount_removed = 0
         transfers_by_description = {}
-        transactions = self.aggregate_transactions()
         while True:
-            pass_count += 1
+            pass_num += 1
 
             # Build candidate transfer mapping
-            for transaction in transactions.itertuples(index=False):
-                counter_transactions = transactions[transactions['amount'] == -transaction.amount]
+            for transaction in self.transactions[self.transactions["is_transfer"] == False].itertuples(index=False):
+                counter_transactions = self.transactions[
+                    (~self.transactions['is_transfer']) &
+                    (self.transactions['amount'] == -transaction.amount) &
+                    (self.transactions['account'] != transaction.account)
+                ]
 
                 # Only consider single, non-chained transfers
                 if len(counter_transactions) == 0 or len(counter_transactions) > 1:
                     continue
 
-                # Set suspected counter transfer
-                counter_transaction = counter_transactions.iloc[0]
-
-                # A transfer cannot be within the same account
-                if transaction.account == counter_transaction.account:
-                    continue
-
                 # Transaction and counter transaction are thought to be transfers
                 transfer = transaction
-                counter_transfer = counter_transaction
+                counter_transfer = counter_transactions.iloc[0]
 
                 # From the transfer description, make a unique link between the accounts
                 from_to_link = ((transfer.account, counter_transfer.account) if transfer.amount < 0 else
@@ -83,12 +83,8 @@ class Banker:
                     transfers_by_description.update({transfer.description: existing_links + [from_to_link]})
 
             # Verify transfers from candidate mapping and remove
-            transfers_to_remove = set()
-            for transaction in transactions.itertuples(index=True):
-                # Only consider transactions with descriptions thought to be transfers and
-                # ensure "deleted" transactions are not reconsidered due to pairing
-                if (transaction.description not in transfers_by_description or
-                    transaction.Index in transfers_to_remove):
+            for transaction in self.transactions.itertuples(index=True):
+                if transaction.is_transfer == True:
                     continue
 
                 # For the given transaction with a thought to be transfer description, iterate over the linked accounts
@@ -102,10 +98,11 @@ class Banker:
                     #   2. If the transfer amount is negative, search for the "to" account, otherwise search for the "from" account
                     #   3. Has a synonym description that indicates the same account transfer flow
                     counter_transfers = [
-                        transactions[
-                            (transactions['amount'] == -transaction.amount) &
-                            (transactions['account'] == (to_account if transaction.amount < 0 else from_account)) &
-                            (transactions['description'] == synonym_description)
+                        self.transactions[
+                            (~self.transactions['is_transfer']) &
+                            (self.transactions['account'] == (to_account if transaction.amount < 0 else from_account)) &
+                            (self.transactions['amount'] == -transaction.amount) &
+                            (self.transactions['description'] == synonym_description)
                         ] for synonym_description in synonym_descriptions]
                     counter_transfer = next((counter_transfer for counter_transfer in counter_transfers
                                             if not counter_transfer.empty), pd.DataFrame())
@@ -114,20 +111,20 @@ class Banker:
 
                     # Transaction is confirmed to be a transfer!
                     transfer = transaction
-                    transfers_to_remove.update([transfer.Index, counter_transfer.index[0]])
-                    net_removed += transfer.amount + counter_transfer.iloc[0].amount
+                    self.transactions.loc[transfer.Index, "is_transfer"] = True
+                    self.transactions.loc[counter_transfer.index[0], "is_transfer"] = True
 
                     # Found a transfer pair, mark both for removal
                     self.log.append(f"removing transfer of ${abs(transfer.amount)} from {from_account} to {to_account} ({transfer.description})")
                     self.log.append(f"removing transfer of ${abs(transfer.amount)} from {to_account} to {from_account} ({counter_transfer.iloc[0].description})")
 
-            if not transfers_to_remove:
+                    removed_in_pass += 2
+                    net_amount_removed += transfer.amount + counter_transfer.iloc[0].amount
+
+            if not removed_in_pass:
                 break
-
-            transactions = transactions.drop(index=transfers_to_remove)
-            self.log.append(f"{len(transfers_to_remove)} transfers removed in pass {pass_count} with net ${net_removed}\n")
-
-        return transactions
+            self.log.append(f"{removed_in_pass} transfers removed in pass {pass_num} with net ${net_amount_removed}\n")
+            removed_in_pass = 0
 
     def get_log(self):
         log_string = "\n".join(self.log)
