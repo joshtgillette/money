@@ -15,14 +15,17 @@ class Advisor:
         # Direct the banker to load transactions for the specified months
         self.report.note_header("TRANSFER REMOVAL")
         self.banker.load(self.months)
+
+        transactions = self.banker.get_transactions()
+        transactions_no_transfers = self.banker.get_transactions(is_transfer=False)
         self.report.note(self.banker.get_log())
         self.report.note(f"loaded {len(self.banker.accounts)} bank accounts "
-                         f"with {len(self.banker.get_transactions())} total transactions, "
-                         f"{len(self.banker.get_transactions(is_transfer=False))} without transfers\n")
+                         f"with {len(transactions)} total transactions, "
+                         f"{len(transactions_no_transfers)} without transfers\n")
 
         # Write transactions data to the report
-        self.report.write_transactions(self.banker.get_transactions(), "all transactions")
-        self.report.write_transactions(self.banker.get_transactions(is_transfer=False), "transactions no transfers")
+        self.report.write_transactions(transactions, "all transactions")
+        self.report.write_transactions(transactions_no_transfers, "transactions no transfers")
 
         self.report.note_header("CATEGORY TRACKING")
         for category in self.categories:
