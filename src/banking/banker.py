@@ -38,112 +38,112 @@ class Banker:
 
     def remove_transfers(self):
         """
-        phase 1: find candidate transfers -
-            1. For each transaction search for a one-off counter transaction from another account
-            2. If found link the two accounts by description, denoting a candidate transfer
-        phase 2: confirm transfers and remove -
-            1. For each transaction find a counter transaction with:
-                - the exact opposite amount (zero-sum)
-                - from/to the correct account based on transfer direction
-                - a synonym description that indicates the same account transfer flow
+        Removes internal transfers between bank accounts. Removal is dependent on relating a candidate
+        transfer's sending and receiving account to the transfer and counter-transfer's descriptions along with
+        a confidence value indicating the frequency of transfer's with the same descriptions between the accounts.
+
+        phase 1: build the account-transfer-description (ATD) confidence directory that relates a potential
+                 transfer's sending and receiving account by the transactions' descriptions.
+            1. For each transaction, find a sole counter transaction indicating a transfer
+            2. Link the sending and receiving accounts by the transfer's description pair with a confidence value
+        phase 2: remove transactions with accounts and descriptions in the ATD confidence mapping that have
+                 both the highest and high enough confidence value.
 
         repeat these phases until transfers are no longer removed
         """
 
-        pass_num = removed_in_pass = net_amount_removed = 0
-        transfers_by_description = {}
+        atd_confidence = {} # sending account name: {
+                            #    receiving account name: [
+                            #        [from account transaction description,
+                            #         to account transaction description,
+                            #         confidence value],
+                            #    ]
+                            # }
+        phase_toggle = True # Toggle to switch between ATD building and removing phases
+        passes_ran = transfers_in_pass = 0
         while True:
-            pass_num += 1
-
-            # Build candidate transfer mapping
+            # Phase 1: Build the ATD confidence directory
             for account, transaction in self:
+                # Only consider transactions not already marked as transfers
                 if transaction.is_transfer:
                     continue
 
-                # Transaction and counter transaction are thought to be transfers
-                counter_account, counter_transfer = self.find_counter_transfer(account, transaction)
+                # Look for a sole counter transaction to suggest a transfer
+                counter_account, counter_transaction = self.find_counter_transaction(account, transaction)
                 if not counter_account:
                     continue
-                transfer = transaction
 
-                # From the transfer description, make a unique link between the accounts
-                from_to_link = ((account.name, counter_account.name) if transfer.amount < 0 else
-                                (counter_account.name, account.name))
-                existing_links = transfers_by_description.get(transfer.description, [])
-                if from_to_link not in existing_links:
-                    transfers_by_description.update({transfer.description: existing_links + [from_to_link]})
+                # Determine the sending and receiving accounts
+                sending_account, sending_transaction, receiving_account, receiving_transaction = \
+                    (account, transaction, counter_account, counter_transaction) if transaction.amount < 0 else \
+                    (counter_account, counter_transaction, account, transaction)
 
-            # Verify transfers from candidate mapping and remove
-            for account, transaction in self:
-                if transaction.is_transfer:
-                    continue
+                if phase_toggle:
+                    # Update the description pair in corresponding sender/receiver entry with confidence value
+                    receiving_accounts = atd_confidence.get(sending_account.name, {})
+                    description_pairs = receiving_accounts.get(receiving_account.name, [])
+                    existing_description_pair = [dp for dp in description_pairs
+                                                if dp[0] == sending_transaction.description and
+                                                    dp[1] == receiving_transaction.description]
+                    if existing_description_pair:
+                        existing_description_pair[0][2] += 1
+                    else:
+                        description_pairs.append([sending_transaction.description, receiving_transaction.description, 1])
+                    receiving_accounts.update({receiving_account.name: description_pairs})
+                    atd_confidence.update({sending_account.name: receiving_accounts})
+                else:
+                    # Get the description pair with the highest/high confidence value indicating a transfer
+                    # between the sending and receiving accounts
+                    description_pairs = atd_confidence.get(sending_account.name, {}).get(receiving_account.name, [])
+                    sending_description, receiving_description, confidence = \
+                        max(description_pairs, key=lambda dp: dp[2]) if description_pairs else (None, None, 0)
 
-                # For the given transaction with a thought to be transfer description, iterate over the linked accounts
-                for (from_account_name, to_account_name) in transfers_by_description.get(transaction.description, []):
-                    # Multiple (two) descriptions can indicate the same account transfer from -> to flow
-                    synonym_descriptions = [description for description, links in transfers_by_description.items()
-                                            if (from_account_name, to_account_name) in links]
+                    # If the confidence is highest and high enough, mark the transactions as a transfer!
+                    if confidence > 1 and \
+                        sending_description == sending_transaction.description and \
+                        receiving_description == receiving_transaction.description:
+                        self.log.append(f"transaction of {self.format_amount(sending_transaction.amount)} from "
+                                        f"{sending_account.name} to {receiving_account.name} ({sending_transaction.description}) "
+                                        "is transfer")
+                        self.log.append(f"transaction of {self.format_amount(receiving_transaction.amount)} from "
+                                        f"{receiving_account.name} to {sending_account.name} ({receiving_transaction.description}) "
+                                        "is transfer")
+                        account.transactions.loc[transaction.Index, "is_transfer"] = True
+                        counter_account.transactions.loc[counter_transaction.Index, "is_transfer"] = True
+                        transfers_in_pass += 1
 
-                    # Perform the transfer search. A transfer:
-                    #   1. Has the exact opposite amount (zero-sum)
-                    #   2. If the transfer amount is negative, search for the "to" account, otherwise search for the "from" account
-                    #   3. Has a synonym description that indicates the same account transfer flow
-                    counter_transfers = [
-                        self.find_transactions(
-                            to_account_name if transaction.amount < 0 else from_account_name,
-                            -transaction.amount,
-                            synonym_description
-                        ) for synonym_description in synonym_descriptions
-                    ]
-                    counter_transfer = next(((account, counter_transfer) for account, counter_transfer in counter_transfers
-                                            if not counter_transfer.empty), (None, pd.DataFrame()))
-                    if counter_transfer[1].empty or len(counter_transfer[1]) > 1:
-                        continue
-                    counter_account, counter_transfer = counter_transfer
-                    counter_transfer = counter_transfer.iloc[0]
+            # Toggle phase, only report after removal phase
+            phase_toggle = not phase_toggle
+            if not phase_toggle:
+                continue
 
-                    # Transaction is confirmed to be a transfer!
-                    transfer = transaction
-                    account.transactions.loc[transfer.Index, "is_transfer"] = True
-                    counter_account.transactions.loc[counter_transfer.Index, "is_transfer"] = True
-
-                    # Found a transfer pair, mark both for removal
-                    self.log.append(f"removing transfer of ${abs(transfer.amount)} from {from_account_name} to {to_account_name} ({transfer.description})")
-                    self.log.append(f"removing transfer of ${abs(transfer.amount)} from {to_account_name} to {from_account_name} ({counter_transfer.description})")
-                    removed_in_pass += 2
-                    net_amount_removed += transfer.amount + counter_transfer.amount
-
-            if not removed_in_pass:
+            if not transfers_in_pass:
                 break
-            self.log.append(f"{removed_in_pass} transfers removed in pass {pass_num} with net ${net_amount_removed}\n")
-            removed_in_pass = 0
+            passes_ran += 1
+            self.log.append(f"{transfers_in_pass} transfers removed in pass {passes_ran}\n")
+            transfers_in_pass = 0
 
-    def find_counter_transfer(self, account, transaction):
+    def find_counter_transaction(self, account, transaction):
         """Find the definitive counter-transfer for a given transaction."""
 
         # A counter transaction is a counter-priced transaction in another account, not a guaranteed transfer
         counter_transfer = None
         for a, t in self:
-            if a != account and t.amount == -transaction.amount and not t.is_transfer:
+            if not t.is_transfer and \
+               a != account and \
+               t.amount == -transaction.amount and \
+               abs((t.date - transaction.date).days) <= 7:
                 if counter_transfer:
                     # Only consider single, non-chained transfers
                     return None, None
 
-                counter_transfer = (a, pd.DataFrame([t]))
+                counter_transfer = (a, t)
 
         # This is a confirmed counter-transfer
         return counter_transfer if counter_transfer else (None, None)
 
-    def find_transactions(self, account_name, amount, description):
-        """Find transactions matching the given criteria."""
-
-        account, transactions = None, []
-        for a, t in self:
-            if not t.is_transfer and a.name == account_name and t.amount == amount and t.description == description:
-                account = a
-                transactions.append(t)
-
-        return account, pd.DataFrame(transactions)
+    def format_amount(self, amount):
+        return f"-${abs(amount):.2f}" if amount < 0 else f"${abs(amount):.2f}"
 
     def get_log(self):
         log_string = "\n".join(self.log)

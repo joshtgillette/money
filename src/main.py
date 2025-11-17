@@ -5,6 +5,7 @@ from banking.accounts.apple import Apple
 from banking.accounts.pnc import PNC
 from tracking.categories.income import Income
 from tracking.categories.interest import Interest
+from tracking.categories.transfer import Transfer
 from datetime import datetime
 from advisor import Advisor
 import pandas as pd
@@ -32,5 +33,5 @@ if __name__ == "__main__":
             freq='MS'
         ).tolist(),
         Banker(SoFi("Checking"), SoFi("Savings"), Apple("Savings"), PNC("Checking"), PNC("Savings")),
-        [Income("income"), Interest("interest")]
+        [Income("income"), Interest("interest"), Transfer("transfer")]
     ).start()
