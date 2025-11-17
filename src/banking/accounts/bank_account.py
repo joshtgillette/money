@@ -57,3 +57,8 @@ class BankAccount(ABC):
 
         return (transaction.amount > 0 and
                 "interest" in transaction.description.lower())
+
+    def is_transaction_transfer(self, transaction: pd.Series) -> bool:
+        """Determine if a normalized transaction is a transfer."""
+
+        return transaction.is_transfer
