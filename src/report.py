@@ -5,7 +5,7 @@ import pandas as pd
 class Report:
 
     PATH = "report"
-    DATA_PATH = f"{PATH}/data"
+    DATA_PATH = f"{PATH}/transactions"
     NOTES_FILE = f"{PATH}/notes.txt"
 
     def __init__(self):

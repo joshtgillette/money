@@ -23,9 +23,9 @@ class Advisor:
 
         # Write transactions data to the report
         transactions = self.banker.get_transactions()
-        self.report.write_transactions(transactions, "transactions")
+        self.report.write_transactions(transactions, "all")
         non_transfer_transactions = self.banker.get_transactions(lambda t: not t.is_transfer)
-        self.report.write_transactions(non_transfer_transactions, "non-tranfer transactions")
+        self.report.write_transactions(non_transfer_transactions, "all - no transfers")
         self.report.note(f"loaded {len(self.banker.accounts)} bank accounts "
                          f"with {len(transactions)} total transactions, "
                          f"{len(non_transfer_transactions)} non-transfers\n")
@@ -37,10 +37,10 @@ class Advisor:
             transactions = self.banker.get_transactions(lambda t: getattr(t, category.label))
             self.report.note(f"categorized {len(transactions)} transactions as {category.label} "
                              f"totaling ${transactions['amount'].sum():,.2f}")
-            self.report.write_transactions(transactions, f"{category.label} transactions")
+            self.report.write_transactions(transactions, f"{category.label}")
         self.report.write_transactions(
             self.banker.get_transactions(
                 lambda t: not any(getattr(t, category.label) for category in self.categories)
             ),
-            "uncategorized transactions"
+            "uncategorized"
         )
