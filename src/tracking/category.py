@@ -6,17 +6,18 @@ class Category(ABC):
 
     def __init__(self, label):
         self.label = label
-        self.transactions = pd.DataFrame()
 
-    def filter(self, banker: Banker):
+    def apply_filter(self, banker: Banker):
         """Filter income transactions from all accounts."""
-        filtered_transactions = []
+
+        # Initialize the category column
+        for account in banker.accounts:
+            account.transactions[self.label] = False
+
+        # Apply the filter function to each transaction
         for account, transaction in banker:
             if self.filter_function(account, transaction):
-                filtered_transactions.append(transaction)
-
-        if filtered_transactions:
-            self.transactions = pd.DataFrame(filtered_transactions)
+                account.transactions.loc[transaction.Index, self.label] = True
 
     @abstractmethod
     def filter_function(self, transactions: pd.DataFrame):

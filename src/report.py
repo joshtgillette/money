@@ -23,7 +23,8 @@ class Report:
             note_file.write(f"{message}\n")
 
     def write_transactions(self, transactions: pd.DataFrame, filename: str):
-        transactions.drop(columns=['is_transfer']).to_csv(
+        transactions.sort_values('date').to_csv(
             f"{self.DATA_PATH}/{filename}.csv",
+            columns=['date', 'account', 'amount', 'description'],
             index=False
         )
