@@ -12,29 +12,20 @@ class Banker:
         for account in self.accounts:
             account.load_transactions(months)
             account.normalize()
-            account.transactions["is_transfer"] = False
-
-        self.remove_transfers()
 
     def __iter__(self):
         for account in self.accounts:
             for transaction in account.transactions.itertuples(index=True):
                 yield account, transaction
 
-    def get_transactions(self, is_transfer=None):
-        columns = ['date', 'account', 'amount', 'description', 'is_transfer']
-        transactions = []
-        for account, transaction in self:
-            if is_transfer is not None and transaction.is_transfer != is_transfer:
-                continue
+    def get_transactions(self, *predicates):
+        # Add account name to each transaction
+        for account in self.accounts:
+            account.transactions['account'] = account.name
 
-            transaction_with_account = pd.Series(transaction._asdict())
-            transaction_with_account['account'] = account.name
-            transactions.append(transaction_with_account)
-        if not transactions:
-            return pd.DataFrame(columns=columns)
-
-        return pd.DataFrame(transactions)[columns].sort_values('date').reset_index(drop=True)
+        # Collect transactions based on predicates
+        return pd.DataFrame([transaction for _, transaction in self
+                             if not predicates or any(pred(transaction) for pred in predicates)])
 
     def remove_transfers(self):
         """
@@ -51,6 +42,10 @@ class Banker:
 
         repeat these phases until transfers are no longer removed
         """
+
+        # First add the is_transfer field
+        for account in self.accounts:
+            account.transactions["is_transfer"] = False
 
         atd_confidence = {} # sending account name: {
                             #    receiving account name: [
