@@ -7,6 +7,7 @@ from tracking.categories.income import Income
 from tracking.categories.interest import Interest
 from tracking.categories.transfer import Transfer
 from tracking.categories.jody import Jody
+from tracking.categories.house import House
 from datetime import datetime
 from advisor import Advisor
 import pandas as pd
@@ -34,5 +35,5 @@ if __name__ == "__main__":
             freq='MS'
         ).tolist(),
         Banker(SoFi("Checking"), SoFi("Savings"), Apple("Savings"), PNC("Checking"), PNC("Savings")),
-        [Income("income"), Interest("interest"), Transfer("transfer"), Jody("jody")]
+        [Income("income"), Interest("interest"), Transfer("transfer"), Jody("jody"), House("house")]
     ).start()
