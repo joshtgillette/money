@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import pandas as pd
-from banking.banker import Banker
+from accounts.banker import Banker
 
 class Category(ABC):
 
