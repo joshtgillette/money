@@ -1,39 +1,11 @@
-from datetime import datetime
+from accounts.adapters.account import Account
 import pandas as pd
 from abc import ABC, abstractmethod
 
-class BankAccount(ABC):
-
-    TRANSACTIONS_PATH = "transactions"
+class BankAccount(Account, ABC):
 
     def __init__(self, bank_name: str, type: str = ""):
-        self.name = f"{bank_name} {type}".strip()
-        self.raw_transactions = pd.DataFrame()
-        self.transactions = pd.DataFrame(columns=[
-            'date',
-            'amount',
-            'description',
-        ])
-
-    def load_transactions(self, dates: list[datetime]) -> pd.DataFrame:
-        """Load transactions from a CSV file into a pandas DataFrame."""
-
-        for date in dates:
-            path = f"{self.TRANSACTIONS_PATH}/{date.strftime('%m%y')}/{self.name.lower()}.csv"
-            try:
-                self.raw_transactions = pd.concat([self.raw_transactions, pd.read_csv(path)], ignore_index=True)
-            except FileNotFoundError:
-                continue
-
-    @abstractmethod
-    def normalize(self):
-        """Normalize raw transaction data to standard format.
-
-        This method must be implemented by each bank-specific subclass
-        to handle their unique CSV format and transform it into the
-        standard format with columns: ['date', 'description', 'amount']
-        """
-        pass
+        super().__init__(bank_name, type)
 
     @abstractmethod
     def is_transaction_income(self, transaction: pd.Series) -> bool:
