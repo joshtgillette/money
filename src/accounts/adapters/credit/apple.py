@@ -1,10 +1,10 @@
-from accounts.adapters.credit.credit_account import CreditAccount
+from accounts.adapters.credit.credit_card import CreditCard
 import pandas as pd
 
-class Apple(CreditAccount):
+class Apple(CreditCard):
 
     def __init__(self):
-        super().__init__("Apple Credit Card")
+        super().__init__("Apple")
 
     def normalize(self):
         """Convert Apple's CSV format to standard transaction format."""

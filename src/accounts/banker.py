@@ -1,5 +1,6 @@
 import pandas as pd
 from datetime import datetime
+from accounts.adapters.credit.credit_card import CreditCard
 
 class Banker:
 
@@ -10,6 +11,9 @@ class Banker:
 
     def load(self, months: list[datetime]):
         for account in self.accounts:
+            if isinstance(account, CreditCard):
+                continue
+
             account.load_transactions(months)
             account.normalize()
 

@@ -1,10 +1,10 @@
-from accounts.adapters.credit.credit_account import CreditAccount
+from accounts.adapters.credit.credit_card import CreditCard
 import pandas as pd
 
-class WellsFargo(CreditAccount):
+class WellsFargo(CreditCard):
 
     def __init__(self):
-        super().__init__("Wells Fargo Credit Card")
+        super().__init__("Wells Fargo")
 
     def normalize(self):
         """Convert Wells Fargo's CSV format to standard transaction format."""
