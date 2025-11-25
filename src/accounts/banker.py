@@ -11,9 +11,6 @@ class Banker:
 
     def load(self, months: list[datetime]):
         for account in self.accounts:
-            if isinstance(account, CreditCard):
-                continue
-
             account.load_transactions(months)
             account.normalize()
 
@@ -82,7 +79,7 @@ class Banker:
                     receiving_accounts = atd_confidence.get(sending_account.name, {})
                     description_pairs = receiving_accounts.get(receiving_account.name, [])
                     existing_description_pair = [dp for dp in description_pairs
-                                                if dp[0] == sending_transaction.description and
+                                                 if dp[0] == sending_transaction.description and
                                                     dp[1] == receiving_transaction.description]
                     if existing_description_pair:
                         existing_description_pair[0][2] += 1
@@ -98,7 +95,7 @@ class Banker:
                         max(description_pairs, key=lambda dp: dp[2]) if description_pairs else (None, None, 0)
 
                     # If the confidence is highest and high enough, mark the transactions as a transfer!
-                    if confidence > 1 and \
+                    if confidence >= 2 and \
                         sending_description == sending_transaction.description and \
                         receiving_description == receiving_transaction.description:
                         self.log.append(f"transaction of {self.format_amount(sending_transaction.amount)} from "

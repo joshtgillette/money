@@ -16,8 +16,10 @@ class Category(ABC):
 
         # Apply the filter function to each transaction
         for account, transaction in banker:
-            if self.filter_function(account, transaction):
-                account.transactions.loc[transaction.Index, self.label] = True
+            try:
+                account.transactions.loc[transaction.Index, self.label] = self.filter_function(account, transaction)
+            except AttributeError:
+                continue
 
     @abstractmethod
     def filter_function(self, transactions: pd.DataFrame):
