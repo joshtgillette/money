@@ -1,5 +1,5 @@
 from datetime import datetime
-from banking.banker import Banker
+from accounts.banker import Banker
 from tracking.category import Category
 from report import Report
 

@@ -1,5 +1,6 @@
 import pandas as pd
 from datetime import datetime
+from accounts.adapters.credit.credit_card import CreditCard
 
 class Banker:
 
@@ -78,7 +79,7 @@ class Banker:
                     receiving_accounts = atd_confidence.get(sending_account.name, {})
                     description_pairs = receiving_accounts.get(receiving_account.name, [])
                     existing_description_pair = [dp for dp in description_pairs
-                                                if dp[0] == sending_transaction.description and
+                                                 if dp[0] == sending_transaction.description and
                                                     dp[1] == receiving_transaction.description]
                     if existing_description_pair:
                         existing_description_pair[0][2] += 1
@@ -94,7 +95,7 @@ class Banker:
                         max(description_pairs, key=lambda dp: dp[2]) if description_pairs else (None, None, 0)
 
                     # If the confidence is highest and high enough, mark the transactions as a transfer!
-                    if confidence > 1 and \
+                    if confidence >= 2 and \
                         sending_description == sending_transaction.description and \
                         receiving_description == receiving_transaction.description:
                         self.log.append(f"transaction of {self.format_amount(sending_transaction.amount)} from "
@@ -127,7 +128,10 @@ class Banker:
             if not t.is_transfer and \
                a != account and \
                t.amount == -transaction.amount and \
-               abs((t.date - transaction.date).days) <= 7:
+               abs((t.date - transaction.date).days) <= 7 and \
+               (not isinstance(account, CreditCard) or not isinstance(a, CreditCard)) and \
+               (not isinstance(account, CreditCard) or transaction.amount > 0) and \
+               (not isinstance(a, CreditCard) or t.amount > 0):
                 if counter_transfer:
                     # Only consider single, non-chained transfers
                     return None, None

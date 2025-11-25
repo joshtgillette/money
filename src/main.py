@@ -1,8 +1,11 @@
 from argparse import ArgumentParser
-from banking.banker import Banker
-from banking.accounts.sofi import SoFi
-from banking.accounts.apple import Apple
-from banking.accounts.pnc import PNC
+from accounts.banker import Banker
+from accounts.adapters.bank.sofi import SoFi
+from accounts.adapters.bank.apple import Apple
+from accounts.adapters.bank.pnc import PNC
+from accounts.adapters.credit.apple import Apple as AppleCredit
+from accounts.adapters.credit.wells_fargo import WellsFargo
+from accounts.adapters.credit.chase import Chase
 from tracking.categories.income import Income
 from tracking.categories.interest import Interest
 from tracking.categories.transfer import Transfer
@@ -36,6 +39,7 @@ if __name__ == "__main__":
             end=datetime.strptime(args.end, "%m%y"),
             freq='MS'
         ).tolist(),
-        Banker(SoFi("Checking"), SoFi("Savings"), Apple("Savings"), PNC("Checking"), PNC("Savings")),
+        Banker(SoFi("Checking"), SoFi("Savings"), Apple("Savings"), PNC("Checking"), PNC("Savings"),
+               AppleCredit(), WellsFargo(), Chase()),
         [Income("income"), Interest("interest"), Transfer("transfer"), Jody("jody"), House("house"), Invest("invest"), Rewards("rewards")]
     ).start()
