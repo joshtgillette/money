@@ -128,7 +128,10 @@ class Banker:
             if not t.is_transfer and \
                a != account and \
                t.amount == -transaction.amount and \
-               abs((t.date - transaction.date).days) <= 7:
+               abs((t.date - transaction.date).days) <= 7 and \
+               (not isinstance(account, CreditCard) or not isinstance(a, CreditCard)) and \
+               (not isinstance(account, CreditCard) or transaction.amount > 0) and \
+               (not isinstance(a, CreditCard) or t.amount > 0):
                 if counter_transfer:
                     # Only consider single, non-chained transfers
                     return None, None
