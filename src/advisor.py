@@ -1,5 +1,6 @@
 from datetime import datetime
 from accounts.banker import Banker
+from tracking.categories.transfer import Transfer
 from tracking.category import Category
 from report import Report
 
@@ -34,7 +35,8 @@ class Advisor:
         self.report.note_header("CATEGORY TRACKING")
         for category in self.categories:
             category.apply_filter(self.banker)
-            transactions = self.banker.get_transactions(lambda t: getattr(t, category.label))
+            transactions = self.banker.get_transactions(lambda t: getattr(t, category.label),
+                                                        lambda t: not t.is_transfer if not isinstance(category, Transfer) else True)
             self.report.note(f"categorized {len(transactions)} transactions as {category.label} "
                              f"totaling ${transactions['amount'].sum():,.2f}")
             self.report.write_transactions(transactions, f"{category.label}")

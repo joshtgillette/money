@@ -26,7 +26,7 @@ class Banker:
 
         # Collect transactions based on predicates
         return pd.DataFrame([transaction for _, transaction in self
-                             if not predicates or any(pred(transaction) for pred in predicates)])
+                             if not predicates or all(pred(transaction) for pred in predicates)])
 
     def remove_transfers(self):
         """
