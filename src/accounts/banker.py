@@ -28,9 +28,9 @@ class Banker:
         return pd.DataFrame([transaction for _, transaction in self
                              if not predicates or all(pred(transaction) for pred in predicates)])
 
-    def remove_transfers(self):
+    def identify_transfers(self):
         """
-        Removes internal transfers between bank accounts. Removal is dependent on relating a candidate
+        Identify internal transfers between bank accounts. Identification is dependent on relating a candidate
         transfer's sending and receiving account to the transfer and counter-transfer's descriptions along with
         a confidence value indicating the frequency of transfer's with the same descriptions between the accounts.
 
@@ -38,10 +38,10 @@ class Banker:
                  transfer's sending and receiving account by the transactions' descriptions.
             1. For each transaction, find a sole counter transaction indicating a transfer
             2. Link the sending and receiving accounts by the transfer's description pair with a confidence value
-        phase 2: remove transactions with accounts and descriptions in the ATD confidence mapping that have
+        phase 2: identify transactions with accounts and descriptions in the ATD confidence mapping that have
                  both the highest and high enough confidence value.
 
-        repeat these phases until transfers are no longer removed
+        repeat these phases until transfers are no longer identified
         """
 
         # First add the is_transfer field
@@ -55,7 +55,7 @@ class Banker:
                             #         confidence value],
                             #    ]
                             # }
-        phase_toggle = True # Toggle to switch between ATD building and removing phases
+        phase = 1 # Toggle to switch between ATD building (phase 1) and identify phases (phase 2)
         passes_ran = transfers_in_pass = 0
         while True:
             # Phase 1: Build the ATD confidence directory
@@ -108,22 +108,24 @@ class Banker:
                         counter_account.transactions.loc[counter_transaction.Index, "is_transfer"] = True
                         transfers_in_pass += 1
 
-            # Toggle phase, only report after removal phase
-            phase_toggle = not phase_toggle
-            if not phase_toggle:
+            # Toggle phase, only report after identify phase
+            if phase == 1:
+                phase = 2
                 continue
+            else:
+                phase = 1
 
             if not transfers_in_pass:
                 break
             passes_ran += 1
-            self.log.append(f"{transfers_in_pass} transfers removed in pass {passes_ran}\n")
+            self.log.append(f"{transfers_in_pass} transfers identified in pass {passes_ran}\n")
             transfers_in_pass = 0
 
-    def find_counter_transaction(self, account, transaction):
+    def find_counter_transactions(self, account, transaction):
         """Find the definitive counter-transfer for a given transaction."""
 
         # A counter transaction is a counter-priced transaction in another account, not a guaranteed transfer
-        counter_transfer = None
+        counter_transactions = []
         for a, t in self:
             if not t.is_transfer and \
                a != account and \
@@ -132,14 +134,9 @@ class Banker:
                (not isinstance(account, CreditCard) or not isinstance(a, CreditCard)) and \
                (not isinstance(account, CreditCard) or transaction.amount > 0) and \
                (not isinstance(a, CreditCard) or t.amount > 0):
-                if counter_transfer:
-                    # Only consider single, non-chained transfers
-                    return None, None
+                counter_transactions.append((a, t))
 
-                counter_transfer = (a, t)
-
-        # This is a confirmed counter-transfer
-        return counter_transfer if counter_transfer else (None, None)
+        return counter_transactions
 
     def format_amount(self, amount):
         return f"-${abs(amount):.2f}" if amount < 0 else f"${abs(amount):.2f}"
