@@ -7,4 +7,4 @@ class Jody(Category):
         super().__init__(label)
 
     def filter_function(self, _, transaction: pd.Series):
-        return transaction.description == "ESL FEDERAL CU P2P ACH WEB PAYMENT JOSHUA GILLETTE"
+        return transaction.description == "Deposit Internet Transfer from 708226014 CK"
