@@ -1,5 +1,6 @@
 import pandas as pd
 from datetime import datetime
+from difflib import SequenceMatcher
 from accounts.adapters.credit.credit_card import CreditCard
 
 class Banker:
@@ -38,8 +39,7 @@ class Banker:
                  transfer's sending and receiving account by the transactions' descriptions.
             1. For each transaction, find a sole counter transaction indicating a transfer
             2. Link the sending and receiving accounts by the transfer's description pair with a confidence value
-        phase 2: identify transactions with accounts and descriptions in the ATD confidence mapping that have
-                 both the highest and high enough confidence value.
+        phase 2: identify transactions with accounts and descriptions in the ATD confidence mapping that have both the highest confidence value.
 
         repeat these phases until transfers are no longer identified
         """
@@ -64,49 +64,58 @@ class Banker:
                 if transaction.is_transfer:
                     continue
 
-                # Look for a sole counter transaction to suggest a transfer
-                counter_account, counter_transaction = self.find_counter_transaction(account, transaction)
-                if not counter_account:
-                    continue
+                counter_transactions = self.find_counter_transactions(account, transaction)
+                if phase == 1 and len(counter_transactions) == 1:
+                    counter_account, counter_transaction = counter_transactions[0]
 
-                # Determine the sending and receiving accounts
-                sending_account, sending_transaction, receiving_account, receiving_transaction = \
-                    (account, transaction, counter_account, counter_transaction) if transaction.amount < 0 else \
-                    (counter_account, counter_transaction, account, transaction)
+                    # Determine the sending and receiving accounts
+                    sending_account, sending_transaction, receiving_account, receiving_transaction = \
+                        (account, transaction, counter_account, counter_transaction) if transaction.amount < 0 else \
+                        (counter_account, counter_transaction, account, transaction)
 
-                if phase_toggle:
                     # Update the description pair in corresponding sender/receiver entry with confidence value
                     receiving_accounts = atd_confidence.get(sending_account.name, {})
                     description_pairs = receiving_accounts.get(receiving_account.name, [])
                     existing_description_pair = [dp for dp in description_pairs
-                                                 if dp[0] == sending_transaction.description and
-                                                    dp[1] == receiving_transaction.description]
-                    if existing_description_pair:
+                                                 if self.equate_transaction_descriptions(dp[0], sending_transaction.description) and
+                                                    self.equate_transaction_descriptions(dp[1], receiving_transaction.description)]
+
+                    if existing_description_pair and \
+                       existing_description_pair[0][3] != f"{sending_account.name}.{sending_transaction.Index}":
                         existing_description_pair[0][2] += 1
-                    else:
-                        description_pairs.append([sending_transaction.description, receiving_transaction.description, 1])
+                    elif not existing_description_pair:
+                        description_pairs.append([sending_transaction.description, receiving_transaction.description, 1, f"{sending_account.name}.{sending_transaction.Index}"])
                     receiving_accounts.update({receiving_account.name: description_pairs})
                     atd_confidence.update({sending_account.name: receiving_accounts})
-                else:
-                    # Get the description pair with the highest/high confidence value indicating a transfer
-                    # between the sending and receiving accounts
-                    description_pairs = atd_confidence.get(sending_account.name, {}).get(receiving_account.name, [])
-                    sending_description, receiving_description, confidence = \
-                        max(description_pairs, key=lambda dp: dp[2]) if description_pairs else (None, None, 0)
+                elif phase == 2:
+                    for counter_account, counter_transaction in counter_transactions:
+                        if account.transactions.loc[transaction.Index, "is_transfer"] or \
+                           counter_account.transactions.loc[counter_transaction.Index, "is_transfer"]:
+                            continue
 
-                    # If the confidence is highest and high enough, mark the transactions as a transfer!
-                    if confidence >= 2 and \
-                        sending_description == sending_transaction.description and \
-                        receiving_description == receiving_transaction.description:
-                        self.log.append(f"transaction of {self.format_amount(sending_transaction.amount)} from "
-                                        f"{sending_account.name} to {receiving_account.name} ({sending_transaction.description}) "
-                                        "is transfer")
-                        self.log.append(f"transaction of {self.format_amount(receiving_transaction.amount)} from "
-                                        f"{receiving_account.name} to {sending_account.name} ({receiving_transaction.description}) "
-                                        "is transfer")
-                        account.transactions.loc[transaction.Index, "is_transfer"] = True
-                        counter_account.transactions.loc[counter_transaction.Index, "is_transfer"] = True
-                        transfers_in_pass += 1
+                        sending_account, sending_transaction, receiving_account, receiving_transaction = \
+                            (account, transaction, counter_account, counter_transaction) if transaction.amount < 0 else \
+                            (counter_account, counter_transaction, account, transaction)
+
+                        # Get the description pair with the highest/high confidence value indicating a transfer
+                        # between the sending and receiving accounts
+                        description_pairs = atd_confidence.get(sending_account.name, {}).get(receiving_account.name, [])
+                        sending_description, receiving_description, confidence, _ = \
+                            max(description_pairs, key=lambda dp: dp[2]) if description_pairs else (None, None, 0, None)
+
+                        # If the confidence is highest, mark the transactions as a transfer!
+                        if confidence > 0 and \
+                           self.equate_transaction_descriptions(sending_description, sending_transaction.description) and \
+                           self.equate_transaction_descriptions(receiving_description, receiving_transaction.description):
+                            self.log.append(f"transaction of {self.format_amount(sending_transaction.amount)} from "
+                                            f"{sending_account.name} to {receiving_account.name} ({sending_transaction.description}) "
+                                            "is transfer")
+                            self.log.append(f"transaction of {self.format_amount(receiving_transaction.amount)} from "
+                                            f"{receiving_account.name} to {sending_account.name} ({receiving_transaction.description}) "
+                                            "is transfer")
+                            account.transactions.loc[transaction.Index, "is_transfer"] = True
+                            counter_account.transactions.loc[counter_transaction.Index, "is_transfer"] = True
+                            transfers_in_pass += 1
 
             # Toggle phase, only report after identify phase
             if phase == 1:
@@ -122,21 +131,22 @@ class Banker:
             transfers_in_pass = 0
 
     def find_counter_transactions(self, account, transaction):
-        """Find the definitive counter-transfer for a given transaction."""
+        """Find counter-transactions for a given transaction."""
 
-        # A counter transaction is a counter-priced transaction in another account, not a guaranteed transfer
-        counter_transactions = []
-        for a, t in self:
+        # A counter transaction is a valid counter-priced transaction in another account, not a guaranteed transfer
+        return [
+            (a, t) for a, t in self
             if not t.is_transfer and \
                a != account and \
                t.amount == -transaction.amount and \
                abs((t.date - transaction.date).days) <= 7 and \
                (not isinstance(account, CreditCard) or not isinstance(a, CreditCard)) and \
                (not isinstance(account, CreditCard) or transaction.amount > 0) and \
-               (not isinstance(a, CreditCard) or t.amount > 0):
-                counter_transactions.append((a, t))
+               (not isinstance(a, CreditCard) or t.amount > 0)
+        ]
 
-        return counter_transactions
+    def equate_transaction_descriptions(self, d1, d2, threshold=0.90):
+        return SequenceMatcher(None, d1, d2).ratio() >= threshold
 
     def format_amount(self, amount):
         return f"-${abs(amount):.2f}" if amount < 0 else f"${abs(amount):.2f}"
