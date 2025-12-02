@@ -89,8 +89,8 @@ class Banker:
                     atd_confidence.update({sending_account.name: receiving_accounts})
                 elif phase == 2:
                     for counter_account, counter_transaction in counter_transactions:
-                        if account.transactions.loc[transaction.Index, "is_transfer"] or \
-                           counter_account.transactions.loc[counter_transaction.Index, "is_transfer"]:
+                        if self.is_transfer(account, transaction.Index) or \
+                           self.is_transfer(counter_account, counter_transaction.Index):
                             continue
 
                         sending_account, sending_transaction, receiving_account, receiving_transaction = \
@@ -113,8 +113,8 @@ class Banker:
                             self.log.append(f"transaction of {self.format_amount(receiving_transaction.amount)} from "
                                             f"{receiving_account.name} to {sending_account.name} ({receiving_transaction.description}) "
                                             "is transfer")
-                            account.transactions.loc[transaction.Index, "is_transfer"] = True
-                            counter_account.transactions.loc[counter_transaction.Index, "is_transfer"] = True
+                            self.set_transfer(account, transaction.Index)
+                            self.set_transfer(counter_account, counter_transaction.Index)
                             transfers_in_pass += 1
 
             # Toggle phase, only report after identify phase
@@ -148,7 +148,13 @@ class Banker:
     def equate_transaction_descriptions(self, d1, d2, threshold=0.90):
         return SequenceMatcher(None, d1, d2).ratio() >= threshold
 
-    def format_amount(self, amount):
+    def set_transfer(self, account, transaction_index, value=True):
+        account.transactions.loc[transaction_index, "is_transfer"] = value
+
+    def get_transfer(self, account, transaction_index) -> bool:
+        return account.transactions.loc[transaction_index, "is_transfer"]
+
+    def format_amount(self, amount: float) -> str:
         return f"-${abs(amount):.2f}" if amount < 0 else f"${abs(amount):.2f}"
 
     def get_log(self):
