@@ -14,6 +14,7 @@ class Banker:
         for account in self.accounts:
             account.load_transactions(months)
             account.normalize()
+            account.transactions["is_transfer"] = False
 
     def __iter__(self):
         for account in self.accounts:
@@ -43,10 +44,6 @@ class Banker:
 
         repeat these phases until transfers are no longer identified
         """
-
-        # First add the is_transfer field
-        for account in self.accounts:
-            account.transactions["is_transfer"] = False
 
         atd_confidence = {} # sending account name: {
                             #    receiving account name: [
@@ -148,7 +145,33 @@ class Banker:
     def equate_transaction_descriptions(self, d1, d2, threshold=0.90):
         return SequenceMatcher(None, d1, d2).ratio() >= threshold
 
-    def format_amount(self, amount):
+    def identify_returns(self):
+        for account, transaction in self:
+            if transaction.is_transfer or not account.is_return_candidate(transaction):
+                continue
+
+            original_transaction = account.find_counter_return(transaction)
+            if original_transaction is None:
+                continue
+
+            self.log.append(
+                f"transaction of {self.format_amount(transaction.amount)} from "
+                f"{account.name} ({transaction.description}) "
+                "is return")
+            self.log.append(
+                f"transaction of {self.format_amount(original_transaction.amount)} from "
+                f"{account.name} ({original_transaction.description}) "
+                "is returned")
+            self.set_transfer(account, transaction.Index)
+            self.set_transfer(account, original_transaction.Index)
+
+    def set_transfer(self, account, transaction_index, value=True):
+        account.transactions.loc[transaction_index, "is_transfer"] = value
+
+    def is_transfer(self, account, transaction_index) -> bool:
+        return account.transactions.loc[transaction_index, "is_transfer"]
+
+    def format_amount(self, amount: float) -> str:
         return f"-${abs(amount):.2f}" if amount < 0 else f"${abs(amount):.2f}"
 
     def get_log(self):

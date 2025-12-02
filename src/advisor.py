@@ -19,6 +19,7 @@ class Advisor:
 
         # Remove transfers if the transfer category exists
         if "transfer" in [category.label for category in self.categories]:
+            self.banker.identify_returns()
             self.banker.identify_transfers()
         self.report.note(self.banker.get_log())
 

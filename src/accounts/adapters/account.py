@@ -35,3 +35,16 @@ class Account(ABC):
         standard format with columns: ['date', 'description', 'amount']
         """
         pass
+
+    def is_return_candidate(self, transaction) -> bool:
+        return (transaction.amount > 0 or (self.__class__.__name__ == 'CreditCard' or transaction.amount < 0)) and \
+                "return" in transaction.description.lower()
+
+    def find_counter_return(self, return_transaction) -> int:
+        for transaction in self.transactions.itertuples(index=True):
+            if not self.transactions.loc[transaction.Index, "is_transfer"] and \
+               transaction.amount == -return_transaction.amount and \
+               transaction.date <= return_transaction.date:
+                return transaction
+
+        return None
