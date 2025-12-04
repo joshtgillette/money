@@ -3,8 +3,8 @@ import pandas as pd
 
 class SoFi(BankAccount):
 
-    def __init__(self, type: str):
-        super().__init__("SoFi", type)
+    def __init__(self, name: str):
+        super().__init__(name)
         self.raw_transactions = pd.DataFrame()
 
     def normalize(self):

@@ -40,7 +40,11 @@ if __name__ == "__main__":
             end=datetime.strptime(args.end, "%m%y"),
             freq='MS'
         ).tolist(),
-        Banker(SoFi("Checking"), SoFi("Savings"), Apple("Savings"), PNC("Checking"), PNC("Savings"), ESL("Checking"), ESL("Savings"),
-               AppleCredit(), WellsFargo(), Chase()),
-        [Income("income"), Interest("interest"), Transfer("transfer"), Jody("jody"), House("house"), Invest("invest"), Rewards("rewards")]
+        Banker(SoFi("SoFi Checking"), SoFi("SoFi Savings"),
+               Apple("Apple Savings"),
+               PNC("PNC Checking"), PNC("PNC Savings"),
+               ESL("ESL Checking"), ESL("ESL Savings"),
+               AppleCredit("Apple Card"), WellsFargo("Wells Fargo Credit Card"), Chase("Chase Credit Card")),
+        [Income("income"), Interest("interest"), Transfer("transfer"),
+         Jody("jody"), House("house"), Invest("invest"), Rewards("rewards")]
     ).start()

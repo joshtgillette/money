@@ -6,8 +6,8 @@ class Account(ABC):
 
     TRANSACTIONS_PATH = "transactions"
 
-    def __init__(self, account_name: str, type: str = ""):
-        self.name = f"{account_name} {type}".strip()
+    def __init__(self, name: str):
+        self.name = name
         self.raw_transactions = pd.DataFrame()
         self.transactions = pd.DataFrame(columns=[
             'date',
