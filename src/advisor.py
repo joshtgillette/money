@@ -6,8 +6,7 @@ from report import Report
 
 class Advisor:
 
-    def __init__(self, months: list[datetime], banker: Banker, categories: list[Category]):
-        self.months = months
+    def __init__(self, banker: Banker, categories: list[Category]):
         self.banker = banker
         self.categories = categories
         self.report = Report()
@@ -15,7 +14,7 @@ class Advisor:
     def start(self):
         # Direct the banker to load transactions for the specified date range
         self.report.note_header("TRANSFER REMOVAL")
-        self.banker.load(self.months)
+        self.banker.load()
 
         # Remove transfers if the transfer category exists
         if "transfer" in [category.label for category in self.categories]:

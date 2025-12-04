@@ -1,10 +1,7 @@
-from datetime import datetime
 import pandas as pd
 from abc import ABC, abstractmethod
 
 class Account(ABC):
-
-    TRANSACTIONS_PATH = "transactions"
 
     def __init__(self, name: str):
         self.name = name
@@ -16,15 +13,10 @@ class Account(ABC):
         ])
         self.header_val = 0
 
-    def load_transactions(self, dates: list[datetime]) -> pd.DataFrame:
-        """Load transactions from a CSV file into a pandas DataFrame."""
+    def load_transactions(self, path) -> pd.DataFrame:
+        """Load transactions from a specific CSV file into a pandas DataFrame."""
 
-        for date in dates:
-            path = f"{self.TRANSACTIONS_PATH}/{date.strftime('%m%y')}/{self.name.lower()}.csv"
-            try:
-                self.raw_transactions = pd.concat([self.raw_transactions, pd.read_csv(path, header=self.header_val)], ignore_index=True)
-            except FileNotFoundError:
-                continue
+        self.raw_transactions = pd.concat([self.raw_transactions, pd.read_csv(path, header=self.header_val)], ignore_index=True)
 
     @abstractmethod
     def normalize(self):

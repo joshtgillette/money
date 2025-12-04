@@ -1,18 +1,29 @@
 import pandas as pd
-from datetime import datetime
+import os
 from difflib import SequenceMatcher
 from accounts.adapters.credit.credit_card import CreditCard
 
 class Banker:
+
+    TRANSACTIONS_PATH = "transactions"
 
     def __init__(self, *accounts):
         self.accounts = list(accounts)
         self.transactions = pd.DataFrame()
         self.log = []
 
-    def load(self, months: list[datetime]):
+    def load(self):
+        name_account_mapping = {account.name.lower(): account for account in self.accounts}
+        for root, _, files in os.walk(self.TRANSACTIONS_PATH):
+            for file in files:
+                if not file.endswith('.csv'):
+                    continue
+
+                key = file[:-4].lower()
+                if key in name_account_mapping:
+                    name_account_mapping.get(key).load_transactions(os.path.join(root, file))
+
         for account in self.accounts:
-            account.load_transactions(months)
             account.normalize()
             account.transactions["is_transfer"] = False
 
