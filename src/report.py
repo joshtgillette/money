@@ -24,22 +24,26 @@ class Report:
         with open(self.NOTES_FILE, "a") as note_file:
             note_file.write(f"{message}\n")
 
-    def write_transactions(self, transactions: pd.DataFrame, filename: str):
+    def write_transactions(self, transactions: pd.DataFrame, path: str,
+                           columns=['date', 'account', 'amount', 'description']):
         transactions = transactions.sort_values('date').reset_index(drop=True)
+
+        full_path = f"{self.FULL_DATA_PATH}/{path}.csv"
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
 
         # Write full transactions
         transactions.to_csv(
-            f"{self.FULL_DATA_PATH}/{filename}.csv",
-            columns=['date', 'account', 'amount', 'description'],
+            full_path,
+            columns=columns,
             index=False
         )
 
         # Write monthly transactions
         for month, group in transactions.groupby(transactions['date'].dt.to_period('M')):
-            monthly_path = f"{self.MONTHLY_DATA_PATH}/{month.strftime('%m%y')}/{filename}.csv"
+            monthly_path = f"{self.MONTHLY_DATA_PATH}/{month.strftime('%m%y')}/{path}.csv"
             os.makedirs(os.path.dirname(monthly_path), exist_ok=True)
             group.to_csv(
                 monthly_path,
-                columns=['date', 'account', 'amount', 'description'],
+                columns=columns,
                 index=False
             )

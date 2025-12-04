@@ -39,10 +39,17 @@ class Advisor:
                                                         lambda t: not t.is_transfer if not isinstance(category, Transfer) else True)
             self.report.note(f"categorized {len(transactions)} transactions as {category.label} "
                              f"totaling ${transactions['amount'].sum():,.2f}")
-            self.report.write_transactions(transactions, f"{category.label}")
+            self.report.write_transactions(transactions, f"categories/{category.label}")
         self.report.write_transactions(
             self.banker.get_transactions(
                 lambda t: not any(getattr(t, category.label) for category in self.categories)
             ),
             "uncategorized"
         )
+
+        # Write account transactions
+        [self.report.write_transactions(
+            account.transactions,
+            f"accounts/{account.name.lower()}",
+            columns=['date', 'amount', 'description']
+        ) for account in self.banker.accounts]
