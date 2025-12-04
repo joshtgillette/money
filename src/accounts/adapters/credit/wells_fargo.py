@@ -3,8 +3,8 @@ import pandas as pd
 
 class WellsFargo(CreditCard):
 
-    def __init__(self):
-        super().__init__("Wells Fargo")
+    def __init__(self, name: str):
+        super().__init__(name)
         self.header_val = None  # Wells Fargo does not provide CSV header
 
     def normalize(self):

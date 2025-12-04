@@ -3,5 +3,5 @@ from abc import ABC
 
 class CreditCard(Account, ABC):
 
-    def __init__(self, bank_name: str, type: str = "Credit Card"):
-        super().__init__(bank_name, type)
+    def __init__(self, name: str):
+        super().__init__(name)

@@ -4,8 +4,8 @@ from abc import ABC, abstractmethod
 
 class BankAccount(Account, ABC):
 
-    def __init__(self, bank_name: str, type: str = ""):
-        super().__init__(bank_name, type)
+    def __init__(self, name: str):
+        super().__init__(name)
 
     @abstractmethod
     def is_transaction_income(self, transaction: pd.Series) -> bool:

@@ -3,8 +3,8 @@ import pandas as pd
 
 class Apple(CreditCard):
 
-    def __init__(self):
-        super().__init__("Apple")
+    def __init__(self, name: str):
+        super().__init__(name)
 
     def normalize(self):
         """Convert Apple's CSV format to standard transaction format."""
