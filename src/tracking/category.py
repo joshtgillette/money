@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 
+from accounts.adapters.account import Account
 from accounts.banker import Banker
 
 
@@ -26,6 +27,6 @@ class Category(ABC):
                 continue
 
     @abstractmethod
-    def filter_function(self, transactions: pd.DataFrame):
+    def filter_function(self, account: Account, transaction: pd.Series) -> bool:
         """Override this method to provide filter function"""
         pass

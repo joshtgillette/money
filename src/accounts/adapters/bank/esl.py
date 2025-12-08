@@ -17,10 +17,12 @@ class ESL(BankAccount):
             pd.DataFrame(
                 {
                     "date": pd.to_datetime(self.raw_transactions["Date"]),
-                    "amount": pd.to_numeric(
-                        self.raw_transactions["Amount Credit"]
+                    "amount": pd.Series(
+                        pd.to_numeric(self.raw_transactions["Amount Credit"])
                     ).fillna(0)
-                    + pd.to_numeric(self.raw_transactions["Amount Debit"]).fillna(0),
+                    + pd.Series(
+                        pd.to_numeric(self.raw_transactions["Amount Debit"])
+                    ).fillna(0),
                     "description": self.raw_transactions["Description"]
                     + " "
                     + self.raw_transactions["Memo"].fillna("").str.strip(),

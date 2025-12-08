@@ -43,8 +43,6 @@ class Report:
         for month, group in transactions.groupby(
             transactions["date"].dt.to_period("M")
         ):
-            monthly_path = (
-                f"{self.MONTHLY_DATA_PATH}/{month.strftime('%m%y')}/{path}.csv"
-            )
+            monthly_path = f"{self.MONTHLY_DATA_PATH}/{pd.Period(month).strftime('%m%y')}/{path}.csv"  # type: ignore
             os.makedirs(os.path.dirname(monthly_path), exist_ok=True)
             group.to_csv(monthly_path, columns=columns, index=False)

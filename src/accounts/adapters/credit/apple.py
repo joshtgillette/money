@@ -16,9 +16,10 @@ class Apple(CreditCard):
             pd.DataFrame(
                 {
                     "date": pd.to_datetime(self.raw_transactions["Transaction Date"]),
-                    "amount": -pd.to_numeric(
+                    "amount": pd.Series(
                         pd.to_numeric(self.raw_transactions["Amount (USD)"])
-                    ),
+                    )
+                    * -1,
                     "description": self.raw_transactions["Description"],
                 }
             )

@@ -10,7 +10,7 @@ class Rewards(Category):
     def __init__(self, label):
         super().__init__(label)
 
-    def filter_function(self, account: BankAccount, transaction: pd.Series):
+    def filter_function(self, account: BankAccount, transaction: pd.Series) -> bool:
         return transaction.amount > 0 and (
             transaction.description == "Money Promo Bonus"
             or transaction.description == "Money Referral Bonus"

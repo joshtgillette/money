@@ -25,7 +25,7 @@ class Banker:
 
                 key = file[:-4].lower()
                 if key in name_account_mapping:
-                    name_account_mapping.get(key).load_transactions(
+                    name_account_mapping[key].load_transactions(
                         os.path.join(root, file)
                     )
 

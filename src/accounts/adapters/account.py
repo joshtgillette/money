@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 import pandas as pd
 
@@ -7,16 +8,10 @@ class Account(ABC):
     def __init__(self, name: str):
         self.name = name
         self.raw_transactions = pd.DataFrame()
-        self.transactions = pd.DataFrame(
-            columns=[
-                "date",
-                "amount",
-                "description",
-            ]
-        )
+        self.transactions = pd.DataFrame()
         self.header_val = 0
 
-    def load_transactions(self, path) -> pd.DataFrame:
+    def load_transactions(self, path):
         """Load transactions from a specific CSV file into a pandas DataFrame."""
 
         self.raw_transactions = pd.concat(
@@ -40,12 +35,12 @@ class Account(ABC):
             or (self.__class__.__name__ == "CreditCard" or transaction.amount < 0)
         ) and "return" in transaction.description.lower()
 
-    def find_counter_return(self, return_transaction) -> int:
+    def find_counter_return(self, return_transaction) -> Any:
         for transaction in self.transactions.itertuples(index=True):
             if (
-                not self.transactions.loc[transaction.Index, "is_transfer"]
-                and transaction.amount == -return_transaction.amount
-                and transaction.date <= return_transaction.date
+                not self.transactions.loc[getattr(transaction, "Index"), "is_transfer"]
+                and getattr(transaction, "amount") == -return_transaction.amount  # type: ignore
+                and getattr(transaction, "date") <= return_transaction.date
             ):
                 return transaction
 

@@ -17,9 +17,9 @@ class Apple(BankAccount):
             pd.DataFrame(
                 {
                     "date": pd.to_datetime(self.raw_transactions["Transaction Date"]),
-                    "amount": pd.to_numeric(self.raw_transactions["Amount"]).where(
-                        self.raw_transactions["Transaction Type"] == "Credit",
-                        -pd.to_numeric(self.raw_transactions["Amount"]),
+                    "amount": pd.to_numeric(self.raw_transactions["Amount"])
+                    * (self.raw_transactions["Transaction Type"] == "Credit").map(
+                        {True: 1, False: -1}
                     ),
                     "description": self.raw_transactions["Description"],
                 }
