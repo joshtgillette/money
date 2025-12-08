@@ -1,8 +1,9 @@
-from tracking.category import Category
 import pandas as pd
 
-class Jody(Category):
+from tracking.category import Category
 
+
+class Jody(Category):
     def __init__(self, label):
         super().__init__(label)
 

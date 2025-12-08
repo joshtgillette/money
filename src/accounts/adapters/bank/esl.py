@@ -1,8 +1,9 @@
-from accounts.adapters.bank.bank_account import BankAccount
 import pandas as pd
 
-class ESL(BankAccount):
+from accounts.adapters.bank.bank_account import BankAccount
 
+
+class ESL(BankAccount):
     def __init__(self, name: str):
         super().__init__(name)
         self.raw_transactions = pd.DataFrame()
@@ -12,11 +13,22 @@ class ESL(BankAccount):
         if self.raw_transactions.empty:
             return
 
-        self.transactions = pd.DataFrame({
-            'date': pd.to_datetime(self.raw_transactions['Date']),
-            'amount': pd.to_numeric(self.raw_transactions['Amount Credit']).fillna(0) + pd.to_numeric(self.raw_transactions['Amount Debit']).fillna(0),
-            'description': self.raw_transactions['Description'] + " " + self.raw_transactions['Memo'].fillna("").str.strip()
-        }).sort_values('date').reset_index(drop=True)
+        self.transactions = (
+            pd.DataFrame(
+                {
+                    "date": pd.to_datetime(self.raw_transactions["Date"]),
+                    "amount": pd.to_numeric(
+                        self.raw_transactions["Amount Credit"]
+                    ).fillna(0)
+                    + pd.to_numeric(self.raw_transactions["Amount Debit"]).fillna(0),
+                    "description": self.raw_transactions["Description"]
+                    + " "
+                    + self.raw_transactions["Memo"].fillna("").str.strip(),
+                }
+            )
+            .sort_values("date")
+            .reset_index(drop=True)
+        )
 
     def is_transaction_income(self, transaction: pd.Series) -> bool:
         """Determine if a normalized transaction is income."""

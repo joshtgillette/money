@@ -1,8 +1,9 @@
-from accounts.adapters.credit.credit_card import CreditCard
 import pandas as pd
 
-class WellsFargo(CreditCard):
+from accounts.adapters.credit.credit_card import CreditCard
 
+
+class WellsFargo(CreditCard):
     def __init__(self, name: str):
         super().__init__(name)
         self.header_val = None  # Wells Fargo does not provide CSV header
@@ -12,8 +13,16 @@ class WellsFargo(CreditCard):
         if self.raw_transactions.empty:
             return
 
-        self.transactions = pd.DataFrame({
-            'date': pd.to_datetime(self.raw_transactions.iloc[:, 0]),
-            'amount': pd.to_numeric(pd.to_numeric(self.raw_transactions.iloc[:, 1])),
-            'description': self.raw_transactions.iloc[:, 4]
-        }).sort_values('date').reset_index(drop=True)
+        self.transactions = (
+            pd.DataFrame(
+                {
+                    "date": pd.to_datetime(self.raw_transactions.iloc[:, 0]),
+                    "amount": pd.to_numeric(
+                        pd.to_numeric(self.raw_transactions.iloc[:, 1])
+                    ),
+                    "description": self.raw_transactions.iloc[:, 4],
+                }
+            )
+            .sort_values("date")
+            .reset_index(drop=True)
+        )

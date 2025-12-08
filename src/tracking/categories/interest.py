@@ -1,9 +1,10 @@
-from tracking.category import Category
-from accounts.adapters.bank.bank_account import BankAccount
 import pandas as pd
 
-class Interest(Category):
+from accounts.adapters.bank.bank_account import BankAccount
+from tracking.category import Category
 
+
+class Interest(Category):
     def __init__(self, label):
         super().__init__(label)
 
