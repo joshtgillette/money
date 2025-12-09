@@ -12,14 +12,17 @@ class Advisor:
 
     def start(self):
         # Direct the banker to load transactions for the specified date range
-        self.report.note_header("TRANSFER REMOVAL")
         self.banker.load()
+        if sum(len(account.transactions) for account in self.banker.accounts) == 0:
+            self.report.note("No transactions loaded.")
+            return
 
         # Remove transfers if the transfer category exists
         if "transfer" in [category.label for category in self.categories]:
+            self.report.note_header("TRANSFER REMOVAL")
             self.banker.identify_returns()
             self.banker.identify_transfers()
-        self.report.note(self.banker.get_log())
+            self.report.note(self.banker.get_log())
 
         # Write transactions data to the report
         transactions = self.banker.get_transactions()
