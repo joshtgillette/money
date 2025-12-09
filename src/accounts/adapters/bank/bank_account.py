@@ -1,9 +1,11 @@
-from accounts.adapters.account import Account
-import pandas as pd
 from abc import ABC, abstractmethod
 
-class BankAccount(Account, ABC):
+import pandas as pd
 
+from accounts.adapters.account import Account
+
+
+class BankAccount(Account, ABC):
     def __init__(self, name: str):
         super().__init__(name)
 
@@ -27,5 +29,4 @@ class BankAccount(Account, ABC):
         characteristics.
         """
 
-        return (transaction.amount > 0 and
-                "interest" in transaction.description.lower())
+        return transaction.amount > 0 and "interest" in transaction.description.lower()

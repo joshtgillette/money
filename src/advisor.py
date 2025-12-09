@@ -1,11 +1,10 @@
-from datetime import datetime
 from accounts.banker import Banker
+from report import Report
 from tracking.categories.transfer import Transfer
 from tracking.category import Category
-from report import Report
+
 
 class Advisor:
-
     def __init__(self, banker: Banker, categories: list[Category]):
         self.banker = banker
         self.categories = categories
@@ -25,31 +24,46 @@ class Advisor:
         # Write transactions data to the report
         transactions = self.banker.get_transactions()
         self.report.write_transactions(transactions, "all")
-        non_transfer_transactions = self.banker.get_transactions(lambda t: not t.is_transfer)
+        non_transfer_transactions = self.banker.get_transactions(
+            lambda t: not t.is_transfer
+        )
         self.report.write_transactions(non_transfer_transactions, "all - no transfers")
-        self.report.note(f"loaded {len(self.banker.accounts)} bank accounts "
-                         f"with {len(transactions)} total transactions, "
-                         f"{len(non_transfer_transactions)} non-transfers\n")
+        self.report.note(
+            f"loaded {len(self.banker.accounts)} bank accounts "
+            f"with {len(transactions)} total transactions, "
+            f"{len(non_transfer_transactions)} non-transfers\n"
+        )
 
         # Apply each category's filter and write categorized transactions to the report
         self.report.note_header("CATEGORY TRACKING")
         for category in self.categories:
             category.apply_filter(self.banker)
-            transactions = self.banker.get_transactions(lambda t: getattr(t, category.label),
-                                                        lambda t: not t.is_transfer if not isinstance(category, Transfer) else True)
-            self.report.note(f"categorized {len(transactions)} transactions as {category.label} "
-                             f"totaling ${transactions['amount'].sum():,.2f}")
+            transactions = self.banker.get_transactions(
+                lambda t: getattr(t, category.label),
+                lambda t: not t.is_transfer
+                if not isinstance(category, Transfer)
+                else True,
+            )
+            self.report.note(
+                f"categorized {len(transactions)} transactions as {category.label} "
+                f"totaling ${transactions['amount'].sum():,.2f}"
+            )
             self.report.write_transactions(transactions, f"categories/{category.label}")
         self.report.write_transactions(
             self.banker.get_transactions(
-                lambda t: not any(getattr(t, category.label) for category in self.categories)
+                lambda t: not any(
+                    getattr(t, category.label) for category in self.categories
+                )
             ),
-            "uncategorized"
+            "uncategorized",
         )
 
         # Write account transactions
-        [self.report.write_transactions(
-            account.transactions,
-            f"accounts/{account.name.lower()}",
-            columns=['date', 'amount', 'description']
-        ) for account in self.banker.accounts]
+        [
+            self.report.write_transactions(
+                account.transactions,
+                f"accounts/{account.name.lower()}",
+                columns=["date", "amount", "description"],
+            )
+            for account in self.banker.accounts
+        ]
