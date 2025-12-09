@@ -5,7 +5,7 @@ import pandas as pd
 
 
 class Report:
-    PATH = "report"
+    PATH = "../report"
     FULL_DATA_PATH = f"{PATH}/transactions/full"
     MONTHLY_DATA_PATH = f"{PATH}/transactions/monthly"
     NOTES_FILE = f"{PATH}/notes.txt"
