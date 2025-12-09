@@ -7,7 +7,7 @@ from accounts.adapters.credit.credit_card import CreditCard
 
 
 class Banker:
-    TRANSACTIONS_PATH = "transactions"
+    TRANSACTIONS_PATH = "../transactions"
 
     def __init__(self, *accounts):
         self.accounts = list(accounts)
