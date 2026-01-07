@@ -5,11 +5,11 @@ from transaction import Transaction
 
 
 class PNC(BankAccount):
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         super().__init__(name)
-        self.raw_transactions = pd.DataFrame()
+        self.raw_transactions: pd.DataFrame = pd.DataFrame()
 
-    def normalize(self):
+    def normalize(self) -> None:
         """Convert PNC's CSV format to standard transaction format."""
         if self.raw_transactions.empty:
             return

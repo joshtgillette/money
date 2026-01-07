@@ -1,14 +1,15 @@
 import pandas as pd
+from typing import Optional
 
 from accounts.adapters.credit.credit_card import CreditCard
 
 
 class WellsFargo(CreditCard):
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         super().__init__(name)
-        self.header_val = None  # Wells Fargo does not provide CSV header
+        self.header_val: Optional[int] = None  # Wells Fargo does not provide CSV header
 
-    def normalize(self):
+    def normalize(self) -> None:
         """Convert Wells Fargo's CSV format to standard transaction format."""
         if self.raw_transactions.empty:
             return

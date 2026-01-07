@@ -1,12 +1,12 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, Dict
 
 
 class Transaction:
     """A typed class representing a single financial transaction."""
     
     # Core attributes that should not be stored in _extra_attributes
-    _CORE_ATTRS = frozenset(["date", "amount", "description", "Index", "is_transfer", "account", "_extra_attributes"])
+    _CORE_ATTRS: frozenset[str] = frozenset(["date", "amount", "description", "Index", "is_transfer", "account", "_extra_attributes"])
 
     def __init__(
         self,
@@ -16,14 +16,14 @@ class Transaction:
         index: int,
         is_transfer: bool = False,
         account: Optional[str] = None,
-    ):
-        self.date = date
-        self.amount = amount
-        self.description = description
-        self.Index = index  # Keep Index capitalized for compatibility with pandas itertuples
-        self.is_transfer = is_transfer
-        self.account = account  # Optional account name for banker's transaction lists
-        self._extra_attributes = {}  # For category flags and other dynamic attributes
+    ) -> None:
+        self.date: datetime = date
+        self.amount: float = amount
+        self.description: str = description
+        self.Index: int = index  # Keep Index capitalized for compatibility with pandas itertuples
+        self.is_transfer: bool = is_transfer
+        self.account: Optional[str] = account  # Optional account name for banker's transaction lists
+        self._extra_attributes: Dict[str, Any] = {}  # For category flags and other dynamic attributes
 
     def __getattr__(self, name: str) -> Any:
         """Allow access to dynamically added category attributes."""

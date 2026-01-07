@@ -5,7 +5,7 @@ from transaction import Transaction
 
 
 class Interest(Category):
-    def __init__(self, label):
+    def __init__(self, label: str) -> None:
         super().__init__(label)
 
     def filter_function(self, account: Account, transaction: Transaction) -> bool:

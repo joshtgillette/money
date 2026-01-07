@@ -6,10 +6,10 @@ from transaction import Transaction
 
 
 class Category(ABC):
-    def __init__(self, label):
-        self.label = label
+    def __init__(self, label: str) -> None:
+        self.label: str = label
 
-    def apply_filter(self, banker: Banker):
+    def apply_filter(self, banker: Banker) -> None:
         """Filter income transactions from all accounts."""
 
         # Initialize the category attribute on all transactions
@@ -20,7 +20,7 @@ class Category(ABC):
         # Apply the filter function to each transaction
         for account, transaction in banker:
             try:
-                result = self.filter_function(account, transaction)
+                result: bool = self.filter_function(account, transaction)
                 setattr(transaction, self.label, result)
             except AttributeError:
                 continue

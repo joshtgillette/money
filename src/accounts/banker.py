@@ -1,21 +1,24 @@
 import os
 from difflib import SequenceMatcher
+from typing import List, Dict, Tuple, Optional, Callable, Any, Iterator
 
 import pandas as pd
 
+from accounts.adapters.account import Account
 from accounts.adapters.credit.credit_card import CreditCard
+from transaction import Transaction
 
 
 class Banker:
-    TRANSACTIONS_PATH = "../transactions"
+    TRANSACTIONS_PATH: str = "../transactions"
 
-    def __init__(self, *accounts):
-        self.accounts = list(accounts)
-        self.transactions = pd.DataFrame()
-        self.log = []
+    def __init__(self, *accounts: Account) -> None:
+        self.accounts: List[Account] = list(accounts)
+        self.transactions: pd.DataFrame = pd.DataFrame()
+        self.log: List[str] = []
 
-    def load(self):
-        name_account_mapping = {
+    def load(self) -> None:
+        name_account_mapping: Dict[str, Account] = {
             account.name.lower(): account for account in self.accounts
         }
         for root, _, files in os.walk(self.TRANSACTIONS_PATH):
@@ -23,7 +26,7 @@ class Banker:
                 if not file.endswith(".csv"):
                     continue
 
-                key = file[:-4].lower()
+                key: str = file[:-4].lower()
                 if key in name_account_mapping:
                     name_account_mapping[key].load_transactions(
                         os.path.join(root, file)
@@ -32,15 +35,15 @@ class Banker:
         for account in self.accounts:
             account.normalize()
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[Account, Transaction]]:
         for account in self.accounts:
             for transaction in account.transactions.values():
                 transaction.account = account.name
                 yield account, transaction
 
-    def get_transactions(self, *predicates):
+    def get_transactions(self, *predicates: Callable[[Transaction], bool]) -> pd.DataFrame:
         # Collect transactions based on predicates and build DataFrame
-        transactions_data = []
+        transactions_data: List[Dict[str, Any]] = []
         for account, transaction in self:
             if not predicates or all(pred(transaction) for pred in predicates):
                 transactions_data.append({
@@ -53,7 +56,7 @@ class Banker:
         
         return pd.DataFrame(transactions_data)
 
-    def identify_transfers(self):
+    def identify_transfers(self) -> None:
         """
         Identify internal transfers between bank accounts. Identification is dependent on relating a candidate
         transfer's sending and receiving account to the transfer and counter-transfer's descriptions along with
@@ -68,14 +71,15 @@ class Banker:
         repeat these phases until transfers are no longer identified
         """
 
-        atd_confidence = {}  # sending account name: {
+        atd_confidence: Dict[str, Dict[str, List[List[Any]]]] = {}  # sending account name: {
         #    receiving account name: [
         #        [from account transaction description,
         #         to account transaction description,
         #         confidence value],
         #    ]
         # }
-        passes_ran = transfers_in_pass = 0
+        passes_ran: int = 0
+        transfers_in_pass: int = 0
         while True:
             # Phase 1: Build the ATD confidence directory
             for account, transaction in self:
@@ -83,7 +87,7 @@ class Banker:
                 if transaction.is_transfer:
                     continue
 
-                counter_transactions = self.find_counter_transactions(
+                counter_transactions: List[Tuple[Account, Transaction]] = self.find_counter_transactions(
                     account, transaction
                 )
                 if len(counter_transactions) == 1:
@@ -107,11 +111,11 @@ class Banker:
                     )
 
                     # Update the description pair in corresponding sender/receiver entry with confidence value
-                    receiving_accounts = atd_confidence.get(sending_account.name, {})
-                    description_pairs = receiving_accounts.get(
+                    receiving_accounts: Dict[str, List[List[Any]]] = atd_confidence.get(sending_account.name, {})
+                    description_pairs: List[List[Any]] = receiving_accounts.get(
                         receiving_account.name, []
                     )
-                    existing_description_pair = [
+                    existing_description_pair: List[List[Any]] = [
                         dp
                         for dp in description_pairs
                         if self.equate_transaction_descriptions(
@@ -178,6 +182,9 @@ class Banker:
                     description_pairs = atd_confidence.get(
                         sending_account.name, {}
                     ).get(receiving_account.name, [])
+                    sending_description: Optional[str]
+                    receiving_description: Optional[str]
+                    confidence: int
                     sending_description, receiving_description, confidence, _ = (
                         max(description_pairs, key=lambda dp: dp[2])
                         if description_pairs
@@ -216,7 +223,7 @@ class Banker:
             )
             transfers_in_pass = 0
 
-    def find_counter_transactions(self, account, transaction):
+    def find_counter_transactions(self, account: Account, transaction: Transaction) -> List[Tuple[Account, Transaction]]:
         """Find counter-transactions for a given transaction."""
 
         # A counter transaction is a valid counter-priced transaction in another account, not a guaranteed transfer
@@ -232,15 +239,17 @@ class Banker:
             and (not isinstance(a, CreditCard) or t.amount > 0)
         ]
 
-    def equate_transaction_descriptions(self, d1, d2, threshold=0.90):
+    def equate_transaction_descriptions(self, d1: Optional[str], d2: str, threshold: float = 0.90) -> bool:
+        if d1 is None:
+            return False
         return SequenceMatcher(None, d1, d2).ratio() >= threshold
 
-    def identify_returns(self):
+    def identify_returns(self) -> None:
         for account, transaction in self:
             if transaction.is_transfer or not account.is_return_candidate(transaction):
                 continue
 
-            original_transaction = account.find_counter_return(transaction)
+            original_transaction: Optional[Transaction] = account.find_counter_return(transaction)
             if original_transaction is None:
                 continue
 
@@ -257,11 +266,11 @@ class Banker:
             self.set_transfer(account, transaction.Index)
             self.set_transfer(account, original_transaction.Index)
 
-    def set_transfer(self, account, transaction_index, value=True):
+    def set_transfer(self, account: Account, transaction_index: int, value: bool = True) -> None:
         if transaction_index in account.transactions:
             account.transactions[transaction_index].is_transfer = value
 
-    def is_transfer(self, account, transaction_index) -> bool:
+    def is_transfer(self, account: Account, transaction_index: int) -> bool:
         if transaction_index in account.transactions:
             return account.transactions[transaction_index].is_transfer
         return False
@@ -269,7 +278,7 @@ class Banker:
     def format_amount(self, amount: float) -> str:
         return f"-${abs(amount):.2f}" if amount < 0 else f"${abs(amount):.2f}"
 
-    def get_log(self):
-        log_string = "\n".join(self.log)
+    def get_log(self) -> str:
+        log_string: str = "\n".join(self.log)
         self.log = []
         return log_string

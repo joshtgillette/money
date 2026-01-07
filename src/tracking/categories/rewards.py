@@ -6,7 +6,7 @@ from transaction import Transaction
 
 
 class Rewards(Category):
-    def __init__(self, label):
+    def __init__(self, label: str) -> None:
         super().__init__(label)
 
     def filter_function(self, account: BankAccount, transaction: Transaction) -> bool:

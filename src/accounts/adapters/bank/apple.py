@@ -1,15 +1,16 @@
 import pandas as pd
+from typing import Optional
 
 from accounts.adapters.bank.bank_account import BankAccount
 from transaction import Transaction
 
 
 class Apple(BankAccount):
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         super().__init__(name)
-        self.raw_transactions = pd.DataFrame()
+        self.raw_transactions: pd.DataFrame = pd.DataFrame()
 
-    def normalize(self):
+    def normalize(self) -> None:
         """Convert Apple's CSV format to standard transaction format."""
         if self.raw_transactions.empty:
             return

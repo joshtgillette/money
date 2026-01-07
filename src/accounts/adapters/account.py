@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any, Optional, Dict
 
 import pandas as pd
 
@@ -7,13 +7,13 @@ from transaction import Transaction
 
 
 class Account(ABC):
-    def __init__(self, name: str):
-        self.name = name
-        self.raw_transactions = pd.DataFrame()
-        self.transactions: dict[int, Transaction] = {}  # Map index to Transaction objects
-        self.header_val = 0
+    def __init__(self, name: str) -> None:
+        self.name: str = name
+        self.raw_transactions: pd.DataFrame = pd.DataFrame()
+        self.transactions: Dict[int, Transaction] = {}  # Map index to Transaction objects
+        self.header_val: int = 0
 
-    def load_transactions(self, path):
+    def load_transactions(self, path: str) -> None:
         """Load transactions from a specific CSV file into a pandas DataFrame."""
 
         self.raw_transactions = pd.concat(
@@ -22,7 +22,7 @@ class Account(ABC):
         )
 
     @abstractmethod
-    def normalize(self):
+    def normalize(self) -> None:
         """Normalize raw transaction data to standard format.
 
         This method must be implemented by each account adapter
@@ -31,15 +31,15 @@ class Account(ABC):
         """
         pass
 
-    def _build_transactions_from_dataframe(self, df: pd.DataFrame):
+    def _build_transactions_from_dataframe(self, df: pd.DataFrame) -> None:
         """Helper method to build transactions dict from a normalized DataFrame.
         
         The DataFrame should have columns: date, amount, description, and optionally is_transfer.
         """
         self.transactions = {}
-        has_is_transfer = 'is_transfer' in df.columns
+        has_is_transfer: bool = 'is_transfer' in df.columns
         for index, row in df.iterrows():
-            transaction = Transaction(
+            transaction: Transaction = Transaction(
                 date=row['date'],
                 amount=row['amount'],
                 description=row['description'],
