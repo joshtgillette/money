@@ -37,13 +37,14 @@ class Account(ABC):
         The DataFrame should have columns: date, amount, description, and optionally is_transfer.
         """
         self.transactions = {}
+        has_is_transfer = 'is_transfer' in df.columns
         for index, row in df.iterrows():
             transaction = Transaction(
                 date=row['date'],
                 amount=row['amount'],
                 description=row['description'],
                 index=index,
-                is_transfer=row.get('is_transfer', False),
+                is_transfer=row['is_transfer'] if has_is_transfer else False,
             )
             self.transactions[index] = transaction
 
