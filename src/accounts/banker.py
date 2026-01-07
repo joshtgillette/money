@@ -32,10 +32,11 @@ class Banker:
         for account in self.accounts:
             account.normalize()
             account.transactions["is_transfer"] = False
+            account._sync_transaction_list()
 
     def __iter__(self):
         for account in self.accounts:
-            for transaction in account.transactions.itertuples(index=True):
+            for transaction in account.transaction_list:
                 yield account, transaction
 
     def get_transactions(self, *predicates):
@@ -258,6 +259,11 @@ class Banker:
 
     def set_transfer(self, account, transaction_index, value=True):
         account.transactions.loc[transaction_index, "is_transfer"] = value
+        # Also update the transaction object in the list
+        for transaction in account.transaction_list:
+            if transaction.Index == transaction_index:
+                transaction.is_transfer = value
+                break
 
     def is_transfer(self, account, transaction_index) -> bool:
         return account.transactions.loc[transaction_index, "is_transfer"]

@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
 
-import pandas as pd
-
 from accounts.adapters.account import Account
 from accounts.banker import Banker
+from transaction import Transaction
 
 
 class Category(ABC):
@@ -16,17 +15,19 @@ class Category(ABC):
         # Initialize the category column
         for account in banker.accounts:
             account.transactions[self.label] = False
+            for transaction in account.transaction_list:
+                setattr(transaction, self.label, False)
 
         # Apply the filter function to each transaction
         for account, transaction in banker:
             try:
-                account.transactions.loc[transaction.Index, self.label] = (
-                    self.filter_function(account, transaction)
-                )
+                result = self.filter_function(account, transaction)
+                account.transactions.loc[transaction.Index, self.label] = result
+                setattr(transaction, self.label, result)
             except AttributeError:
                 continue
 
     @abstractmethod
-    def filter_function(self, account: Account, transaction: pd.Series) -> bool:
+    def filter_function(self, account: Account, transaction: Transaction) -> bool:
         """Override this method to provide filter function"""
         pass

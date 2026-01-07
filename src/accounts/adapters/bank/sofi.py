@@ -1,6 +1,7 @@
 import pandas as pd
 
 from accounts.adapters.bank.bank_account import BankAccount
+from transaction import Transaction
 
 
 class SoFi(BankAccount):
@@ -31,14 +32,14 @@ class SoFi(BankAccount):
             ~self.transactions["description"].str.contains("Vault")
         ]
 
-    def is_transaction_income(self, transaction: pd.Series) -> bool:
+    def is_transaction_income(self, transaction: Transaction) -> bool:
         """Determine if a normalized transaction is income."""
         return (
             super().is_transaction_income(transaction)
             and "COMCAST (CC) OF" in transaction.description
         )
 
-    def is_transaction_interest(self, transaction: pd.Series) -> bool:
+    def is_transaction_interest(self, transaction: Transaction) -> bool:
         """Determine if a normalized transaction is interest income."""
         return (
             super().is_transaction_interest(transaction)

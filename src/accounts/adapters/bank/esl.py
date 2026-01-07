@@ -1,6 +1,7 @@
 import pandas as pd
 
 from accounts.adapters.bank.bank_account import BankAccount
+from transaction import Transaction
 
 
 class ESL(BankAccount):
@@ -32,10 +33,10 @@ class ESL(BankAccount):
             .reset_index(drop=True)
         )
 
-    def is_transaction_income(self, transaction: pd.Series) -> bool:
+    def is_transaction_income(self, transaction: Transaction) -> bool:
         """Determine if a normalized transaction is income."""
         return False
 
-    def is_transaction_interest(self, transaction: pd.Series) -> bool:
+    def is_transaction_interest(self, transaction: Transaction) -> bool:
         """Determine if a normalized transaction is interest income."""
         return False
