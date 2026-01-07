@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Optional
 
 import pandas as pd
 
@@ -37,6 +37,9 @@ class Account(ABC):
         """Synchronize transaction_list with the DataFrame."""
         self.transaction_list = []
         self.transaction_index_map = {}
+        # Use a set for O(1) lookup performance
+        excluded_attrs = {"Index", "date", "amount", "description", "is_transfer"}
+        
         for row in self.transactions.itertuples(index=True):
             transaction = Transaction(
                 date=row.date,
@@ -47,13 +50,7 @@ class Account(ABC):
             )
             # Copy any extra columns as attributes (using _fields to avoid built-ins)
             for attr in row._fields:
-                if attr not in [
-                    "Index",
-                    "date",
-                    "amount",
-                    "description",
-                    "is_transfer",
-                ]:
+                if attr not in excluded_attrs:
                     setattr(transaction, attr, getattr(row, attr))
             self.transaction_list.append(transaction)
             self.transaction_index_map[row.Index] = transaction
@@ -64,7 +61,7 @@ class Account(ABC):
             or (self.__class__.__name__ == "CreditCard" or transaction.amount < 0)
         ) and "return" in transaction.description.lower()
 
-    def find_counter_return(self, return_transaction: Transaction) -> Transaction | None:
+    def find_counter_return(self, return_transaction: Transaction) -> Optional[Transaction]:
         for transaction in self.transaction_list:
             if (
                 not transaction.is_transfer

@@ -4,6 +4,9 @@ from typing import Any
 
 class Transaction:
     """A typed class representing a single financial transaction."""
+    
+    # Core attributes that should not be stored in _extra_attributes
+    _CORE_ATTRS = frozenset(["date", "amount", "description", "Index", "is_transfer", "_extra_attributes"])
 
     def __init__(
         self,
@@ -30,7 +33,7 @@ class Transaction:
 
     def __setattr__(self, name: str, value: Any) -> None:
         """Allow setting dynamically added category attributes."""
-        if name in ["date", "amount", "description", "Index", "is_transfer", "_extra_attributes"]:
+        if name in Transaction._CORE_ATTRS:
             super().__setattr__(name, value)
         else:
             if not hasattr(self, "_extra_attributes"):
