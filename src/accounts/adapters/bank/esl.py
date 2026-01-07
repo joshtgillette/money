@@ -1,19 +1,20 @@
 import pandas as pd
 
 from accounts.adapters.bank.bank_account import BankAccount
+from transaction import Transaction
 
 
 class ESL(BankAccount):
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         super().__init__(name)
-        self.raw_transactions = pd.DataFrame()
+        self.raw_transactions: pd.DataFrame = pd.DataFrame()
 
-    def normalize(self):
+    def normalize(self) -> None:
         """Convert ESL's CSV format to standard transaction format."""
         if self.raw_transactions.empty:
             return
 
-        self.transactions = (
+        self._build_transactions_from_dataframe(
             pd.DataFrame(
                 {
                     "date": pd.to_datetime(self.raw_transactions["Date"]),
@@ -32,10 +33,10 @@ class ESL(BankAccount):
             .reset_index(drop=True)
         )
 
-    def is_transaction_income(self, transaction: pd.Series) -> bool:
+    def is_transaction_income(self, transaction: Transaction) -> bool:
         """Determine if a normalized transaction is income."""
         return False
 
-    def is_transaction_interest(self, transaction: pd.Series) -> bool:
+    def is_transaction_interest(self, transaction: Transaction) -> bool:
         """Determine if a normalized transaction is interest income."""
         return False

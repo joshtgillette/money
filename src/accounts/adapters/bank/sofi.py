@@ -1,19 +1,22 @@
 import pandas as pd
 
 from accounts.adapters.bank.bank_account import BankAccount
+from transaction import Transaction
 
 
 class SoFi(BankAccount):
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         super().__init__(name)
-        self.raw_transactions = pd.DataFrame()
+        self.raw_transactions: pd.DataFrame = pd.DataFrame()
 
-    def normalize(self):
+    def normalize(self) -> None:
         """Convert SoFi's CSV format to standard transaction format."""
         if self.raw_transactions.empty:
             return
 
-        self.transactions = (
+        # Ignore Vault transactions, as they are one-sided transfers despite being
+        # a zero-sum transfer with respect to the account. Should this be a category?
+        self._build_transactions_from_dataframe(
             pd.DataFrame(
                 {
                     "date": pd.to_datetime(self.raw_transactions["Date"]),
@@ -23,22 +26,18 @@ class SoFi(BankAccount):
             )
             .sort_values("date")
             .reset_index(drop=True)
+            .pipe(lambda df: df[~df["description"].str.contains("Vault")])
+            .reset_index(drop=True)
         )
 
-        # Ignore Vault transactions, as they are one-sided transfers despite being
-        # a zero-sum transfer with respect to the account. Should this be a category?
-        self.transactions = self.transactions[
-            ~self.transactions["description"].str.contains("Vault")
-        ]
-
-    def is_transaction_income(self, transaction: pd.Series) -> bool:
+    def is_transaction_income(self, transaction: Transaction) -> bool:
         """Determine if a normalized transaction is income."""
         return (
             super().is_transaction_income(transaction)
             and "COMCAST (CC) OF" in transaction.description
         )
 
-    def is_transaction_interest(self, transaction: pd.Series) -> bool:
+    def is_transaction_interest(self, transaction: Transaction) -> bool:
         """Determine if a normalized transaction is interest income."""
         return (
             super().is_transaction_interest(transaction)

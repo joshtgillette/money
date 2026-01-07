@@ -4,15 +4,15 @@ from accounts.adapters.credit.credit_card import CreditCard
 
 
 class Apple(CreditCard):
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         super().__init__(name)
 
-    def normalize(self):
+    def normalize(self) -> None:
         """Convert Apple's CSV format to standard transaction format."""
         if self.raw_transactions.empty:
             return
 
-        self.transactions = (
+        self._build_transactions_from_dataframe(
             pd.DataFrame(
                 {
                     "date": pd.to_datetime(self.raw_transactions["Transaction Date"]),

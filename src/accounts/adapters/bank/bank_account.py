@@ -1,16 +1,15 @@
 from abc import ABC, abstractmethod
 
-import pandas as pd
-
 from accounts.adapters.account import Account
+from transaction import Transaction
 
 
 class BankAccount(Account, ABC):
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         super().__init__(name)
 
     @abstractmethod
-    def is_transaction_income(self, transaction: pd.Series) -> bool:
+    def is_transaction_income(self, transaction: Transaction) -> bool:
         """Determine if a normalized transaction is income.
 
         This method must be implemented by each bank-specific subclass
@@ -21,7 +20,7 @@ class BankAccount(Account, ABC):
         return transaction.amount > 0
 
     @abstractmethod
-    def is_transaction_interest(self, transaction: pd.Series) -> bool:
+    def is_transaction_interest(self, transaction: Transaction) -> bool:
         """Determine if a normalized transaction is interest income.
 
         This method must be implemented by each bank-specific subclass

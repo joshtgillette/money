@@ -4,16 +4,16 @@ from accounts.adapters.credit.credit_card import CreditCard
 
 
 class WellsFargo(CreditCard):
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         super().__init__(name)
         self.header_val = None  # Wells Fargo does not provide CSV header
 
-    def normalize(self):
+    def normalize(self) -> None:
         """Convert Wells Fargo's CSV format to standard transaction format."""
         if self.raw_transactions.empty:
             return
 
-        self.transactions = (
+        self._build_transactions_from_dataframe(
             pd.DataFrame(
                 {
                     "date": pd.to_datetime(self.raw_transactions.iloc[:, 0]),

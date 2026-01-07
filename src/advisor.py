@@ -1,3 +1,7 @@
+from typing import List
+
+import pandas as pd
+
 from accounts.banker import Banker
 from report import Report
 from tracking.categories.transfer import Transfer
@@ -5,12 +9,12 @@ from tracking.category import Category
 
 
 class Advisor:
-    def __init__(self, banker: Banker, categories: list[Category]):
-        self.banker = banker
-        self.categories = categories
-        self.report = Report()
+    def __init__(self, banker: Banker, categories: List[Category]) -> None:
+        self.banker: Banker = banker
+        self.categories: List[Category] = categories
+        self.report: Report = Report()
 
-    def start(self):
+    def start(self) -> None:
         # Direct the banker to load transactions for the specified date range
         self.banker.load()
         if sum(len(account.transactions) for account in self.banker.accounts) == 0:
@@ -25,9 +29,9 @@ class Advisor:
             self.report.note(self.banker.get_log())
 
         # Write transactions data to the report
-        transactions = self.banker.get_transactions()
+        transactions: pd.DataFrame = self.banker.get_transactions()
         self.report.write_transactions(transactions, "all")
-        non_transfer_transactions = self.banker.get_transactions(
+        non_transfer_transactions: pd.DataFrame = self.banker.get_transactions(
             lambda t: not t.is_transfer
         )
         self.report.write_transactions(non_transfer_transactions, "all - no transfers")
@@ -61,12 +65,11 @@ class Advisor:
             "uncategorized",
         )
 
-        # Write account transactions
-        [
-            self.report.write_transactions(
-                account.transactions,
-                f"accounts/{account.name.lower()}",
-                columns=["date", "amount", "description"],
-            )
-            for account in self.banker.accounts
-        ]
+        # Write account transactions - pass transaction lists directly
+        for account in self.banker.accounts:
+            if account.transactions:
+                self.report.write_transactions(
+                    account.transactions.values(),
+                    f"accounts/{account.name.lower()}",
+                    columns=["date", "amount", "description"],
+                )

@@ -1,17 +1,16 @@
 from datetime import datetime
 
-import pandas as pd
-
 from accounts.adapters.account import Account
 from accounts.adapters.credit.chase import Chase
 from tracking.category import Category
+from transaction import Transaction
 
 
 class House(Category):
-    def __init__(self, label):
+    def __init__(self, label: str) -> None:
         super().__init__(label)
 
-    def filter_function(self, account: Account, transaction: pd.Series) -> bool:
+    def filter_function(self, account: Account, transaction: Transaction) -> bool:
         return (
             "PAYMENT TO xxxxxx3890" in transaction.description
             or (
