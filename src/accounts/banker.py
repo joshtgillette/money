@@ -53,7 +53,7 @@ class Banker:
                     'account': transaction.account,
                     'is_transfer': transaction.is_transfer,
                 })
-        
+
         return pd.DataFrame(transactions_data)
 
     def identify_transfers(self) -> None:

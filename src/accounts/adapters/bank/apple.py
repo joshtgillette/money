@@ -1,5 +1,4 @@
 import pandas as pd
-from typing import Optional
 
 from accounts.adapters.bank.bank_account import BankAccount
 from transaction import Transaction

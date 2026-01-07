@@ -1,5 +1,4 @@
 import pandas as pd
-from typing import Optional
 
 from accounts.adapters.credit.credit_card import CreditCard
 

@@ -1,5 +1,4 @@
 from abc import ABC
-from typing import Optional
 
 from accounts.adapters.account import Account
 

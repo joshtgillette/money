@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Dict
+from typing import Optional, Dict, cast
+from datetime import datetime
 
 import pandas as pd
 
@@ -11,7 +12,7 @@ class Account(ABC):
         self.name: str = name
         self.raw_transactions: pd.DataFrame = pd.DataFrame()
         self.transactions: Dict[int, Transaction] = {}  # Map index to Transaction objects
-        self.header_val: int = 0
+        self.header_val: int | None = 0
 
     def load_transactions(self, path: str) -> None:
         """Load transactions from a specific CSV file into a pandas DataFrame."""
@@ -33,20 +34,20 @@ class Account(ABC):
 
     def _build_transactions_from_dataframe(self, df: pd.DataFrame) -> None:
         """Helper method to build transactions dict from a normalized DataFrame.
-        
+
         The DataFrame should have columns: date, amount, description, and optionally is_transfer.
         """
         self.transactions = {}
         has_is_transfer: bool = 'is_transfer' in df.columns
-        for index, row in df.iterrows():
+        for row in df.itertuples():
             transaction: Transaction = Transaction(
-                date=row['date'],
-                amount=row['amount'],
-                description=row['description'],
-                index=index,
-                is_transfer=row['is_transfer'] if has_is_transfer else False,
+                date=cast(datetime, row.date),
+                amount=cast(float, row.amount),
+                description=cast(str, row.description),
+                index=cast(int, row.Index),
+                is_transfer=cast(bool, row.is_transfer) if has_is_transfer else False,
             )
-            self.transactions[index] = transaction
+            self.transactions[cast(int, row.Index)] = transaction
 
     def is_return_candidate(self, transaction: Transaction) -> bool:
         return (
