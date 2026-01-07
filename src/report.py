@@ -8,7 +8,7 @@ from transaction import Transaction
 
 
 class Report:
-    PATH: str = "../report"
+    PATH: str = "report"
     FULL_DATA_PATH: str = f"{PATH}/transactions/full"
     MONTHLY_DATA_PATH: str = f"{PATH}/transactions/monthly"
     NOTES_FILE: str = f"{PATH}/notes.txt"
