@@ -259,11 +259,9 @@ class Banker:
 
     def set_transfer(self, account, transaction_index, value=True):
         account.transactions.loc[transaction_index, "is_transfer"] = value
-        # Also update the transaction object in the list
-        for transaction in account.transaction_list:
-            if transaction.Index == transaction_index:
-                transaction.is_transfer = value
-                break
+        # Also update the transaction object in the map using O(1) lookup
+        if transaction_index in account.transaction_index_map:
+            account.transaction_index_map[transaction_index].is_transfer = value
 
     def is_transfer(self, account, transaction_index) -> bool:
         return account.transactions.loc[transaction_index, "is_transfer"]

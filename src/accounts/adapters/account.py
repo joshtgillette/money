@@ -12,6 +12,7 @@ class Account(ABC):
         self.raw_transactions = pd.DataFrame()
         self.transactions = pd.DataFrame()
         self.transaction_list: list[Transaction] = []
+        self.transaction_index_map: dict[int, Transaction] = {}  # For O(1) lookup
         self.header_val = 0
 
     def load_transactions(self, path):
@@ -35,6 +36,7 @@ class Account(ABC):
     def _sync_transaction_list(self):
         """Synchronize transaction_list with the DataFrame."""
         self.transaction_list = []
+        self.transaction_index_map = {}
         for row in self.transactions.itertuples(index=True):
             transaction = Transaction(
                 date=row.date,
@@ -43,19 +45,18 @@ class Account(ABC):
                 index=row.Index,
                 is_transfer=row.is_transfer if hasattr(row, "is_transfer") else False,
             )
-            # Copy any extra columns as attributes
-            for attr in dir(row):
-                if not attr.startswith("_") and attr not in [
+            # Copy any extra columns as attributes (using _fields to avoid built-ins)
+            for attr in row._fields:
+                if attr not in [
                     "Index",
                     "date",
                     "amount",
                     "description",
                     "is_transfer",
-                    "count",
-                    "index",
                 ]:
                     setattr(transaction, attr, getattr(row, attr))
             self.transaction_list.append(transaction)
+            self.transaction_index_map[row.Index] = transaction
 
     def is_return_candidate(self, transaction: Transaction) -> bool:
         return (

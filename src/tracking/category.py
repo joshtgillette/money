@@ -12,9 +12,10 @@ class Category(ABC):
     def apply_filter(self, banker: Banker):
         """Filter income transactions from all accounts."""
 
-        # Initialize the category column
+        # Initialize the category column in DataFrame and Transaction objects
         for account in banker.accounts:
             account.transactions[self.label] = False
+            # Initialize category attribute on all transactions
             for transaction in account.transaction_list:
                 setattr(transaction, self.label, False)
 
