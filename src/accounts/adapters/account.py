@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, cast
 from datetime import datetime
+from typing import Dict, Optional, cast
 
 import pandas as pd
 
@@ -11,7 +11,9 @@ class Account(ABC):
     def __init__(self, name: str) -> None:
         self.name: str = name
         self.raw_transactions: pd.DataFrame = pd.DataFrame()
-        self.transactions: Dict[int, Transaction] = {}  # Map index to Transaction objects
+        self.transactions: Dict[
+            int, Transaction
+        ] = {}  # Map index to Transaction objects
         self.header_val: int | None = 0
 
     def load_transactions(self, path: str) -> None:
@@ -38,7 +40,7 @@ class Account(ABC):
         The DataFrame should have columns: date, amount, description, and optionally is_transfer.
         """
         self.transactions = {}
-        has_is_transfer: bool = 'is_transfer' in df.columns
+        has_is_transfer: bool = "is_transfer" in df.columns
         for row in df.itertuples():
             transaction: Transaction = Transaction(
                 date=cast(datetime, row.date),
@@ -55,7 +57,9 @@ class Account(ABC):
             or (self.__class__.__name__ == "CreditCard" or transaction.amount < 0)
         ) and "return" in transaction.description.lower()
 
-    def find_counter_return(self, return_transaction: Transaction) -> Optional[Transaction]:
+    def find_counter_return(
+        self, return_transaction: Transaction
+    ) -> Optional[Transaction]:
         for transaction in self.transactions.values():
             if (
                 not transaction.is_transfer

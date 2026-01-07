@@ -1,6 +1,6 @@
 import os
 from difflib import SequenceMatcher
-from typing import List, Dict, Tuple, Optional, Callable, Any, Iterator
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 import pandas as pd
 
@@ -41,18 +41,22 @@ class Banker:
                 transaction.account = account.name
                 yield account, transaction
 
-    def get_transactions(self, *predicates: Callable[[Transaction], bool]) -> pd.DataFrame:
+    def get_transactions(
+        self, *predicates: Callable[[Transaction], bool]
+    ) -> pd.DataFrame:
         # Collect transactions based on predicates and build DataFrame
         transactions_data: List[Dict[str, Any]] = []
         for account, transaction in self:
             if not predicates or all(pred(transaction) for pred in predicates):
-                transactions_data.append({
-                    'date': transaction.date,
-                    'amount': transaction.amount,
-                    'description': transaction.description,
-                    'account': transaction.account,
-                    'is_transfer': transaction.is_transfer,
-                })
+                transactions_data.append(
+                    {
+                        "date": transaction.date,
+                        "amount": transaction.amount,
+                        "description": transaction.description,
+                        "account": transaction.account,
+                        "is_transfer": transaction.is_transfer,
+                    }
+                )
 
         return pd.DataFrame(transactions_data)
 
@@ -71,7 +75,9 @@ class Banker:
         repeat these phases until transfers are no longer identified
         """
 
-        atd_confidence: Dict[str, Dict[str, List[List[Any]]]] = {}  # sending account name: {
+        atd_confidence: Dict[
+            str, Dict[str, List[List[Any]]]
+        ] = {}  # sending account name: {
         #    receiving account name: [
         #        [from account transaction description,
         #         to account transaction description,
@@ -87,8 +93,8 @@ class Banker:
                 if transaction.is_transfer:
                     continue
 
-                counter_transactions: List[Tuple[Account, Transaction]] = self.find_counter_transactions(
-                    account, transaction
+                counter_transactions: List[Tuple[Account, Transaction]] = (
+                    self.find_counter_transactions(account, transaction)
                 )
                 if len(counter_transactions) == 1:
                     counter_account, counter_transaction = counter_transactions[0]
@@ -111,7 +117,9 @@ class Banker:
                     )
 
                     # Update the description pair in corresponding sender/receiver entry with confidence value
-                    receiving_accounts: Dict[str, List[List[Any]]] = atd_confidence.get(sending_account.name, {})
+                    receiving_accounts: Dict[str, List[List[Any]]] = atd_confidence.get(
+                        sending_account.name, {}
+                    )
                     description_pairs: List[List[Any]] = receiving_accounts.get(
                         receiving_account.name, []
                     )
@@ -223,7 +231,9 @@ class Banker:
             )
             transfers_in_pass = 0
 
-    def find_counter_transactions(self, account: Account, transaction: Transaction) -> List[Tuple[Account, Transaction]]:
+    def find_counter_transactions(
+        self, account: Account, transaction: Transaction
+    ) -> List[Tuple[Account, Transaction]]:
         """Find counter-transactions for a given transaction."""
 
         # A counter transaction is a valid counter-priced transaction in another account, not a guaranteed transfer
@@ -239,7 +249,9 @@ class Banker:
             and (not isinstance(a, CreditCard) or t.amount > 0)
         ]
 
-    def equate_transaction_descriptions(self, d1: Optional[str], d2: str, threshold: float = 0.90) -> bool:
+    def equate_transaction_descriptions(
+        self, d1: Optional[str], d2: str, threshold: float = 0.90
+    ) -> bool:
         if d1 is None:
             return False
         return SequenceMatcher(None, d1, d2).ratio() >= threshold
@@ -249,7 +261,9 @@ class Banker:
             if transaction.is_transfer or not account.is_return_candidate(transaction):
                 continue
 
-            original_transaction: Optional[Transaction] = account.find_counter_return(transaction)
+            original_transaction: Optional[Transaction] = account.find_counter_return(
+                transaction
+            )
             if original_transaction is None:
                 continue
 
@@ -266,7 +280,9 @@ class Banker:
             self.set_transfer(account, transaction.Index)
             self.set_transfer(account, original_transaction.Index)
 
-    def set_transfer(self, account: Account, transaction_index: int, value: bool = True) -> None:
+    def set_transfer(
+        self, account: Account, transaction_index: int, value: bool = True
+    ) -> None:
         if transaction_index in account.transactions:
             account.transactions[transaction_index].is_transfer = value
 
