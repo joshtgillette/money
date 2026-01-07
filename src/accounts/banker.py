@@ -31,27 +31,26 @@ class Banker:
 
         for account in self.accounts:
             account.normalize()
-            account.transactions["is_transfer"] = False
-            account._sync_transaction_list()
 
     def __iter__(self):
         for account in self.accounts:
-            for transaction in account.transaction_list:
+            for transaction in account.transactions.values():
                 yield account, transaction
 
     def get_transactions(self, *predicates):
-        # Add account name to each transaction
-        for account in self.accounts:
-            account.transactions["account"] = account.name
-
-        # Collect transactions based on predicates
-        return pd.DataFrame(
-            [
-                transaction
-                for _, transaction in self
-                if not predicates or all(pred(transaction) for pred in predicates)
-            ]
-        )
+        # Collect transactions based on predicates and build DataFrame
+        transactions_data = []
+        for account, transaction in self:
+            if not predicates or all(pred(transaction) for pred in predicates):
+                transactions_data.append({
+                    'date': transaction.date,
+                    'amount': transaction.amount,
+                    'description': transaction.description,
+                    'account': account.name,
+                    'is_transfer': transaction.is_transfer,
+                })
+        
+        return pd.DataFrame(transactions_data)
 
     def identify_transfers(self):
         """
@@ -258,13 +257,13 @@ class Banker:
             self.set_transfer(account, original_transaction.Index)
 
     def set_transfer(self, account, transaction_index, value=True):
-        account.transactions.loc[transaction_index, "is_transfer"] = value
-        # Also update the transaction object in the map using O(1) lookup
-        if transaction_index in account.transaction_index_map:
-            account.transaction_index_map[transaction_index].is_transfer = value
+        if transaction_index in account.transactions:
+            account.transactions[transaction_index].is_transfer = value
 
     def is_transfer(self, account, transaction_index) -> bool:
-        return account.transactions.loc[transaction_index, "is_transfer"]
+        if transaction_index in account.transactions:
+            return account.transactions[transaction_index].is_transfer
+        return False
 
     def format_amount(self, amount: float) -> str:
         return f"-${abs(amount):.2f}" if amount < 0 else f"${abs(amount):.2f}"

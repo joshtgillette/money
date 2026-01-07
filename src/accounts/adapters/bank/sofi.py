@@ -14,7 +14,7 @@ class SoFi(BankAccount):
         if self.raw_transactions.empty:
             return
 
-        self.transactions = (
+        df = (
             pd.DataFrame(
                 {
                     "date": pd.to_datetime(self.raw_transactions["Date"]),
@@ -28,9 +28,10 @@ class SoFi(BankAccount):
 
         # Ignore Vault transactions, as they are one-sided transfers despite being
         # a zero-sum transfer with respect to the account. Should this be a category?
-        self.transactions = self.transactions[
-            ~self.transactions["description"].str.contains("Vault")
-        ]
+        df = df[~df["description"].str.contains("Vault")]
+        df = df.reset_index(drop=True)
+        
+        self._build_transactions_from_dataframe(df)
 
     def is_transaction_income(self, transaction: Transaction) -> bool:
         """Determine if a normalized transaction is income."""

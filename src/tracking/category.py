@@ -12,18 +12,15 @@ class Category(ABC):
     def apply_filter(self, banker: Banker):
         """Filter income transactions from all accounts."""
 
-        # Initialize the category column in DataFrame and Transaction objects
+        # Initialize the category attribute on all transactions
         for account in banker.accounts:
-            account.transactions[self.label] = False
-            # Initialize category attribute on all transactions
-            for transaction in account.transaction_list:
+            for transaction in account.transactions.values():
                 setattr(transaction, self.label, False)
 
         # Apply the filter function to each transaction
         for account, transaction in banker:
             try:
                 result = self.filter_function(account, transaction)
-                account.transactions.loc[transaction.Index, self.label] = result
                 setattr(transaction, self.label, result)
             except AttributeError:
                 continue

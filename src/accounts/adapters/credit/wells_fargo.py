@@ -13,7 +13,7 @@ class WellsFargo(CreditCard):
         if self.raw_transactions.empty:
             return
 
-        self.transactions = (
+        df = (
             pd.DataFrame(
                 {
                     "date": pd.to_datetime(self.raw_transactions.iloc[:, 0]),
@@ -26,3 +26,5 @@ class WellsFargo(CreditCard):
             .sort_values("date")
             .reset_index(drop=True)
         )
+        
+        self._build_transactions_from_dataframe(df)

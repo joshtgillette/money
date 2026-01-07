@@ -10,9 +10,7 @@ class Account(ABC):
     def __init__(self, name: str):
         self.name = name
         self.raw_transactions = pd.DataFrame()
-        self.transactions = pd.DataFrame()
-        self.transaction_list: list[Transaction] = []
-        self.transaction_index_map: dict[int, Transaction] = {}  # For O(1) lookup
+        self.transactions: dict[int, Transaction] = {}  # Map index to Transaction objects
         self.header_val = 0
 
     def load_transactions(self, path):
@@ -28,32 +26,26 @@ class Account(ABC):
         """Normalize raw transaction data to standard format.
 
         This method must be implemented by each account adapter
-        to handle their unique CSV format and transform it into the
-        standard format with columns: ['date', 'description', 'amount']
+        to handle their unique CSV format and transform it into
+        Transaction objects stored in self.transactions dict.
         """
         pass
 
-    def _sync_transaction_list(self):
-        """Synchronize transaction_list with the DataFrame."""
-        self.transaction_list = []
-        self.transaction_index_map = {}
-        # Use a set for O(1) lookup performance
-        excluded_attrs = {"Index", "date", "amount", "description", "is_transfer"}
+    def _build_transactions_from_dataframe(self, df: pd.DataFrame):
+        """Helper method to build transactions dict from a normalized DataFrame.
         
-        for row in self.transactions.itertuples(index=True):
+        The DataFrame should have columns: date, amount, description, and optionally is_transfer.
+        """
+        self.transactions = {}
+        for index, row in df.iterrows():
             transaction = Transaction(
-                date=row.date,
-                amount=row.amount,
-                description=row.description,
-                index=row.Index,
-                is_transfer=row.is_transfer if hasattr(row, "is_transfer") else False,
+                date=row['date'],
+                amount=row['amount'],
+                description=row['description'],
+                index=index,
+                is_transfer=row.get('is_transfer', False),
             )
-            # Copy any extra columns as attributes (using _fields to avoid built-ins)
-            for attr in row._fields:
-                if attr not in excluded_attrs:
-                    setattr(transaction, attr, getattr(row, attr))
-            self.transaction_list.append(transaction)
-            self.transaction_index_map[row.Index] = transaction
+            self.transactions[index] = transaction
 
     def is_return_candidate(self, transaction: Transaction) -> bool:
         return (
@@ -62,7 +54,7 @@ class Account(ABC):
         ) and "return" in transaction.description.lower()
 
     def find_counter_return(self, return_transaction: Transaction) -> Optional[Transaction]:
-        for transaction in self.transaction_list:
+        for transaction in self.transactions.values():
             if (
                 not transaction.is_transfer
                 and transaction.amount == -return_transaction.amount

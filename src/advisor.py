@@ -1,3 +1,5 @@
+import pandas as pd
+
 from accounts.banker import Banker
 from report import Report
 from tracking.categories.transfer import Transfer
@@ -61,12 +63,19 @@ class Advisor:
             "uncategorized",
         )
 
-        # Write account transactions
-        [
-            self.report.write_transactions(
-                account.transactions,
-                f"accounts/{account.name.lower()}",
-                columns=["date", "amount", "description"],
-            )
-            for account in self.banker.accounts
-        ]
+        # Write account transactions - build DataFrames from transaction dicts
+        for account in self.banker.accounts:
+            account_df = pd.DataFrame([
+                {
+                    'date': txn.date,
+                    'amount': txn.amount,
+                    'description': txn.description,
+                }
+                for txn in account.transactions.values()
+            ])
+            if not account_df.empty:
+                self.report.write_transactions(
+                    account_df,
+                    f"accounts/{account.name.lower()}",
+                    columns=["date", "amount", "description"],
+                )

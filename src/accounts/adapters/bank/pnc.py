@@ -14,7 +14,7 @@ class PNC(BankAccount):
         if self.raw_transactions.empty:
             return
 
-        self.transactions = (
+        df = (
             pd.DataFrame(
                 {
                     "date": pd.to_datetime(self.raw_transactions["Transaction Date"]),
@@ -29,6 +29,8 @@ class PNC(BankAccount):
             .sort_values("date")
             .reset_index(drop=True)
         )
+        
+        self._build_transactions_from_dataframe(df)
 
     def is_transaction_income(self, transaction: Transaction) -> bool:
         """Determine if a normalized transaction is income."""
