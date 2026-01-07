@@ -27,10 +27,23 @@ class Report:
 
     def write_transactions(
         self,
-        transactions: pd.DataFrame,
+        transactions,
         path: str,
         columns=["date", "account", "amount", "description"],
     ):
+        # Convert transaction list to DataFrame if needed
+        if not isinstance(transactions, pd.DataFrame):
+            # Assume it's an iterable of Transaction objects
+            transactions = pd.DataFrame([
+                {
+                    'date': txn.date,
+                    'amount': txn.amount,
+                    'description': txn.description,
+                    'account': getattr(txn, 'account', None),
+                }
+                for txn in transactions
+            ])
+        
         transactions = transactions.sort_values("date").reset_index(drop=True)
 
         full_path = f"{self.FULL_DATA_PATH}/{path}.csv"

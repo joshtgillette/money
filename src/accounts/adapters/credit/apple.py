@@ -12,7 +12,7 @@ class Apple(CreditCard):
         if self.raw_transactions.empty:
             return
 
-        df = (
+        self._build_transactions_from_dataframe(
             pd.DataFrame(
                 {
                     "date": pd.to_datetime(self.raw_transactions["Transaction Date"]),
@@ -26,5 +26,3 @@ class Apple(CreditCard):
             .sort_values("date")
             .reset_index(drop=True)
         )
-        
-        self._build_transactions_from_dataframe(df)

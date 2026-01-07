@@ -35,6 +35,7 @@ class Banker:
     def __iter__(self):
         for account in self.accounts:
             for transaction in account.transactions.values():
+                transaction.account = account.name
                 yield account, transaction
 
     def get_transactions(self, *predicates):
@@ -46,7 +47,7 @@ class Banker:
                     'date': transaction.date,
                     'amount': transaction.amount,
                     'description': transaction.description,
-                    'account': account.name,
+                    'account': transaction.account,
                     'is_transfer': transaction.is_transfer,
                 })
         
