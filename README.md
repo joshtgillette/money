@@ -48,10 +48,12 @@ After running the program, check the `report/transactions/tags/` directory for:
 #### Transaction Matching
 
 Tags are matched based on:
+- **Date**: The transaction date
+- **Account**: The transaction account
 - **Amount**: The transaction amount
 - **Description**: The transaction description
 
-This means the same transaction appearing in different months or accounts will automatically receive the same tags.
+This means each unique transaction (same date, account, amount, and description) will have its own tags.
 
 ## Directory Structure
 
@@ -65,8 +67,9 @@ money/
 │   │   ├── accounts/    # Account-specific reports
 │   │   └── monthly/     # Monthly reports
 │   └── notes.txt
-└── tags.json            # Persistent tag storage (auto-generated)
 ```
+
+Note: `tags.json` is not used; tags are loaded from the `transactions/` CSV files.
 
 ## Setup
 
