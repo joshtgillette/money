@@ -18,8 +18,13 @@ class TagManager:
     def load(self) -> None:
         """Load tags from the persistent storage file."""
         if os.path.exists(self.TAGS_FILE):
-            with open(self.TAGS_FILE, "r") as f:
-                self.tags = json.load(f)
+            try:
+                with open(self.TAGS_FILE, "r") as f:
+                    self.tags = json.load(f)
+            except (json.JSONDecodeError, IOError) as e:
+                # If the file is corrupted or unreadable, start fresh
+                print(f"Warning: Could not load tags from {self.TAGS_FILE}: {e}")
+                self.tags = {}
 
     def save(self) -> None:
         """Save tags to the persistent storage file."""

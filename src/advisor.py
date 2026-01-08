@@ -135,9 +135,11 @@ class Advisor:
 
         # Write a CSV for each tag
         for tag, transactions in transactions_by_tag.items():
+            # Sanitize tag name for use in file path
+            safe_tag = self._sanitize_filename(tag)
             df = pd.DataFrame(transactions)
             df = df.sort_values("date").reset_index(drop=True)
-            filepath = os.path.join(tags_report_path, f"{tag}.csv")
+            filepath = os.path.join(tags_report_path, f"{safe_tag}.csv")
             df.to_csv(filepath, index=False)
 
         # Write untagged transactions
@@ -146,3 +148,17 @@ class Advisor:
             df = df.sort_values("date").reset_index(drop=True)
             filepath = os.path.join(tags_report_path, "untagged.csv")
             df.to_csv(filepath, index=False)
+
+    def _sanitize_filename(self, filename: str) -> str:
+        """Sanitize a string for safe use as a filename.
+
+        Removes path traversal characters and other unsafe characters.
+        """
+        # Remove path separators and other dangerous characters
+        safe_name = filename.replace("/", "_").replace("\\", "_").replace("..", "_")
+        # Remove any other potentially problematic characters
+        safe_name = "".join(
+            c for c in safe_name if c.isalnum() or c in (" ", "_", "-")
+        )
+        # Ensure the name isn't empty after sanitization
+        return safe_name if safe_name else "unknown"
