@@ -26,6 +26,9 @@ class Advisor:
             self.report.note("No transactions loaded.")
             return
 
+        # Apply tags to loaded transactions
+        self.tag_manager.apply_tags_to_transactions(self.banker)
+
         # self.report.note_header("TRANSFER REMOVAL")
         # self.banker.identify_returns()
         # self.banker.identify_transfers()
@@ -91,7 +94,8 @@ class Advisor:
         # Collect all transactions with tags into a DataFrame
         transactions_data = []
         for account, transaction in self.banker:
-            tags = self.tag_manager.get_tags(transaction)
+            # Get tags from the transaction object (applied by TagManager)
+            tags = getattr(transaction, 'tag', '')
             transactions_data.append(
                 {
                     "date": transaction.date,
@@ -133,7 +137,8 @@ class Advisor:
         untagged_transactions = []
 
         for account, transaction in self.banker:
-            tags = self.tag_manager.get_tags(transaction)
+            # Get tags from the transaction object (applied by TagManager)
+            tags = getattr(transaction, 'tag', '')
             transaction_data = {
                 "date": transaction.date,
                 "account": transaction.account,

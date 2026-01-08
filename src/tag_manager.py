@@ -1,7 +1,6 @@
 import hashlib
-import json
 import os
-from typing import Dict, Set
+from typing import Dict
 
 import pandas as pd
 
@@ -9,56 +8,24 @@ from transaction import Transaction
 
 
 class TagManager:
-    """Manages transaction tags with persistence across runs."""
-
-    TAGS_FILE: str = "tags.json"
+    """Manages transaction tags loaded from CSV files."""
 
     def __init__(self) -> None:
         self.tags: Dict[str, str] = {}  # hash -> comma-separated tags (lowercase)
-        self.load()
-
-    def load(self) -> None:
-        """Load tags from the persistent storage file."""
-        if os.path.exists(self.TAGS_FILE):
-            try:
-                with open(self.TAGS_FILE, "r") as f:
-                    self.tags = json.load(f)
-            except (json.JSONDecodeError, IOError) as e:
-                # If the file is corrupted or unreadable, start fresh
-                print(f"Warning: Could not load tags from {self.TAGS_FILE}: {e}")
-                self.tags = {}
-
-    def save(self) -> None:
-        """Save tags to the persistent storage file."""
-        with open(self.TAGS_FILE, "w") as f:
-            json.dump(self.tags, f, indent=2)
-
-    def _create_transaction_hash(self, amount: float, description: str) -> str:
-        """Create a hash from transaction amount and description.
-
-        Args:
-            amount: Transaction amount
-            description: Transaction description
-
-        Returns:
-            SHA256 hash of the transaction data
-        """
-        transaction_str = f"{amount}|{description}"
-        return hashlib.sha256(transaction_str.encode()).hexdigest()
 
     def hash_transaction(self, transaction: Transaction) -> str:
         """Generate a unique hash for a transaction.
 
-        Uses amount and description to create a consistent identifier.
-        Date is intentionally excluded to allow tags to persist across
-        different transaction downloads with overlapping time periods.
+        Uses date, account, amount and description to create a consistent identifier.
         """
-        return self._create_transaction_hash(transaction.amount, transaction.description)
+        # Use just the date part (YYYY-MM-DD) for consistency with CSV data
+        date_str = transaction.date.strftime('%Y-%m-%d') if hasattr(transaction.date, 'strftime') else str(transaction.date)
+        transaction_str = f"{date_str}|{transaction.account}|{transaction.amount}|{transaction.description}"
+        return hashlib.sha256(transaction_str.encode()).hexdigest()
 
     def get_tags(self, transaction: Transaction) -> str:
         """Get the tags for a transaction (empty string if none)."""
-        tx_hash = self.hash_transaction(transaction)
-        return self.tags.get(tx_hash, "")
+        return self.tags.get(self.hash_transaction(transaction), "")
 
     def _normalize_tags(self, tags: str) -> str:
         """Normalize tags to lowercase and strip whitespace.
@@ -71,54 +38,32 @@ class TagManager:
         """
         if not tags.strip():
             return ""
-        normalized_tags = ",".join(
+        return ",".join(
             tag.strip().lower() for tag in tags.split(",") if tag.strip()
         )
-        return normalized_tags
 
-    def set_tags(self, transaction: Transaction, tags: str) -> None:
-        """Set tags for a transaction.
-
-        Args:
-            transaction: The transaction to tag
-            tags: Comma-separated tags (will be normalized to lowercase)
-        """
-        tx_hash = self.hash_transaction(transaction)
-        normalized_tags = self._normalize_tags(tags)
-        
-        if normalized_tags:
-            self.tags[tx_hash] = normalized_tags
-        else:
-            # Remove tag if empty
-            self.tags.pop(tx_hash, None)
-        self.save()
-
-    def set_tags_by_data(self, amount: float, description: str, tags: str) -> None:
-        """Set tags for a transaction using raw data instead of Transaction object.
+    def set_tags(self, amount: float, description: str, date: str, account: str, tags: str) -> None:
+        """Set tags for a transaction using raw data.
 
         Args:
             amount: Transaction amount
             description: Transaction description
+            date: Transaction date (should be YYYY-MM-DD format)
+            account: Transaction account
             tags: Comma-separated tags (will be normalized to lowercase)
         """
-        # Create hash using the same logic as hash_transaction
-        tx_hash = self._create_transaction_hash(amount, description)
-        normalized_tags = self._normalize_tags(tags)
+        # Normalize date to YYYY-MM-DD format
+        import pandas as pd
+        date_normalized = pd.to_datetime(date).strftime('%Y-%m-%d')
+        transaction_str = f"{date_normalized}|{account}|{amount}|{description}"
+        tx_hash = hashlib.sha256(transaction_str.encode()).hexdigest()
+        normalized = self._normalize_tags(tags)
 
-        if normalized_tags:
-            self.tags[tx_hash] = normalized_tags
+        if normalized:
+            self.tags[tx_hash] = normalized
         else:
             # Remove tag if empty
             self.tags.pop(tx_hash, None)
-        self.save()
-
-    def get_all_unique_tags(self) -> Set[str]:
-        """Get a set of all unique tags across all transactions."""
-        all_tags: Set[str] = set()
-        for tags_str in self.tags.values():
-            if tags_str:
-                all_tags.update(tags_str.split(","))
-        return all_tags
 
     def load_tags_from_csv(self, csv_path: str) -> None:
         """Load tags from a CSV file containing transaction data.
@@ -126,7 +71,7 @@ class TagManager:
         Args:
             csv_path: Path to the CSV file with transaction data and tags
 
-        The CSV file should have columns: amount, description, tag
+        The CSV file should have columns: date, account, amount, description, tag
         """
         if not os.path.exists(csv_path):
             return
@@ -134,7 +79,7 @@ class TagManager:
         try:
             df = pd.read_csv(csv_path)
             # Check if the file has the expected columns
-            required_cols = ["amount", "description", "tag"]
+            required_cols = ["date", "account", "amount", "description", "tag"]
             missing_cols = [col for col in required_cols if col not in df.columns]
             if missing_cols:
                 print(
@@ -148,9 +93,11 @@ class TagManager:
                     amount = float(row["amount"])
                     # Process all rows, including those with empty tags (for removal)
                     tag_value = "" if pd.isna(row["tag"]) else str(row["tag"]).strip()
-                    self.set_tags_by_data(
+                    self.set_tags(
                         amount=amount,
                         description=str(row["description"]),
+                        date=str(row["date"]),
+                        account=str(row["account"]),
                         tags=tag_value,
                     )
                 except (ValueError, TypeError) as e:
@@ -160,3 +107,14 @@ class TagManager:
                     continue
         except Exception as e:
             print(f"Warning: Could not load tags from {os.path.basename(csv_path)}: {e}")
+
+    def apply_tags_to_transactions(self, banker) -> None:
+        """Apply loaded tags to transaction objects.
+
+        Args:
+            banker: Banker instance containing accounts with transactions
+        """
+        for account, transaction in banker:
+            tags = self.get_tags(transaction)
+            if tags:
+                transaction.tag = tags
