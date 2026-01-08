@@ -15,7 +15,7 @@ class SoFi(BankAccount):
             return
 
         # Ignore Vault transactions, as they are one-sided transfers despite being
-        # a zero-sum transfer with respect to the account. Should this be a category?
+        # a zero-sum transfer with respect to the account.
         self._build_transactions_from_dataframe(
             pd.DataFrame(
                 {

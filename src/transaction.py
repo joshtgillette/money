@@ -37,18 +37,16 @@ class Transaction:
         self.account: Optional[str] = (
             account  # Optional account name for banker's transaction lists
         )
-        self._extra_attributes: Dict[
-            str, Any
-        ] = {}  # For category flags and other dynamic attributes
+        self._extra_attributes: Dict[str, Any] = {}  # For dynamic attributes
 
     def __getattr__(self, name: str) -> Any:
-        """Allow access to dynamically added category attributes."""
+        """Allow access to dynamically added attributes."""
         if name in self._extra_attributes:
             return self._extra_attributes[name]
         raise AttributeError(f"'Transaction' object has no attribute '{name}'")
 
     def __setattr__(self, name: str, value: Any) -> None:
-        """Allow setting dynamically added category attributes."""
+        """Allow setting dynamically added attributes."""
         if name in Transaction._CORE_ATTRS:
             super().__setattr__(name, value)
         else:

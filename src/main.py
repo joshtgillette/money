@@ -7,13 +7,6 @@ from accounts.adapters.credit.chase import Chase
 from accounts.adapters.credit.wells_fargo import WellsFargo
 from accounts.banker import Banker
 from advisor import Advisor
-from tracking.categories.house import House
-from tracking.categories.income import Income
-from tracking.categories.interest import Interest
-from tracking.categories.invest import Invest
-from tracking.categories.jody import Jody
-from tracking.categories.rewards import Rewards
-from tracking.categories.transfer import Transfer
 
 if __name__ == "__main__":
     Advisor(
@@ -28,14 +21,5 @@ if __name__ == "__main__":
             AppleCredit("Apple Card"),
             WellsFargo("Wells Fargo Credit Card"),
             Chase("Chase Credit Card"),
-        ),
-        [
-            Income("income"),
-            Interest("interest"),
-            Transfer("transfer"),
-            Jody("jody"),
-            House("house"),
-            Invest("invest"),
-            Rewards("rewards"),
-        ],
+        )
     ).start()
