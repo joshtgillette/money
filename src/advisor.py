@@ -18,7 +18,7 @@ class Advisor:
 
     def start(self) -> None:
         # Load existing tags from transactions directory before loading new data
-        self._load_existing_tags()
+        self.tag_manager.load_tags_from_directory(self.TRANSACTIONS_PATH)
 
         # Direct the banker to load transactions for the specified date range
         self.banker.load()
@@ -57,7 +57,7 @@ class Advisor:
                 )
 
         # Recreate transactions directory with tags
-        self._write_transactions_with_tags()
+        self.tag_manager.write_transactions_with_tags(self.banker, self.TRANSACTIONS_PATH)
 
         # Write monthly transactions to report
         for month, group in transactions.groupby(
@@ -71,62 +71,6 @@ class Advisor:
         # Generate tag-based reports
         self._generate_tag_reports()
 
-    def _load_existing_tags(self) -> None:
-        """Load tags from existing transactions CSV files before loading new data."""
-        if not os.path.exists(self.TRANSACTIONS_PATH):
-            return
-
-        # Iterate through all CSV files in the transactions directory
-        for filename in os.listdir(self.TRANSACTIONS_PATH):
-            if not filename.endswith(".csv"):
-                continue
-
-            filepath = os.path.join(self.TRANSACTIONS_PATH, filename)
-            self.tag_manager.load_tags_from_csv(filepath)
-
-    def _write_transactions_with_tags(self) -> None:
-        """Write transactions to the transactions/ directory with tags."""
-        # Clear and recreate transactions directory
-        if os.path.exists(self.TRANSACTIONS_PATH):
-            shutil.rmtree(self.TRANSACTIONS_PATH)
-        os.makedirs(self.TRANSACTIONS_PATH, exist_ok=True)
-
-        # Collect all transactions with tags into a DataFrame
-        transactions_data = []
-        for account, transaction in self.banker:
-            # Get tags from the transaction object (applied by TagManager)
-            tags = getattr(transaction, 'tag', '')
-            transactions_data.append(
-                {
-                    "date": transaction.date,
-                    "account": transaction.account,
-                    "amount": transaction.amount,
-                    "description": transaction.description,
-                    "tag": tags,
-                }
-            )
-
-        if not transactions_data:
-            return
-
-        # Create DataFrame and group by month
-        df = pd.DataFrame(transactions_data)
-        df["date"] = pd.to_datetime(df["date"])
-
-        # Write each month's transactions to a separate CSV
-        for month, group in df.groupby(df["date"].dt.to_period("M")):
-            # Format as MMYY.csv (e.g., 0525.csv for May 2025)
-            filename = f"{pd.Period(month).strftime('%m%y')}.csv"
-            filepath = os.path.join(self.TRANSACTIONS_PATH, filename)
-            
-            # Sort and write using pandas
-            group_sorted = group.sort_values("date").reset_index(drop=True)
-            group_sorted.to_csv(
-                filepath,
-                columns=["date", "account", "amount", "description", "tag"],
-                index=False,
-            )
-
     def _generate_tag_reports(self) -> None:
         """Generate tag-based reports in report/transactions/tags/."""
         tags_report_path = os.path.join(self.report.DATA_PATH, "tags")
@@ -137,8 +81,13 @@ class Advisor:
         untagged_transactions = []
 
         for account, transaction in self.banker:
-            # Get tags from the transaction object (applied by TagManager)
-            tags = getattr(transaction, 'tag', '')
+            # Check for tag attributes in _extra_attributes
+            tag_attrs = []
+            if hasattr(transaction, '_extra_attributes'):
+                for attr, value in transaction._extra_attributes.items():
+                    if value is True:
+                        tag_attrs.append(attr.replace('_', ' '))
+            
             transaction_data = {
                 "date": transaction.date,
                 "account": transaction.account,
@@ -146,10 +95,9 @@ class Advisor:
                 "description": transaction.description,
             }
 
-            if tags:
-                # Split comma-separated tags and add to each tag's list
-                for tag in tags.split(","):
-                    tag = tag.strip()
+            if tag_attrs:
+                # Add transaction to each tag's list
+                for tag in tag_attrs:
                     if tag not in transactions_by_tag:
                         transactions_by_tag[tag] = []
                     transactions_by_tag[tag].append(transaction_data)

@@ -13,19 +13,29 @@ class TagManager:
     def __init__(self) -> None:
         self.tags: Dict[str, str] = {}  # hash -> comma-separated tags (lowercase)
 
-    def hash_transaction(self, transaction: Transaction) -> str:
+    def hash_transaction(self, date: str, account: str, amount: float, description: str) -> str:
         """Generate a unique hash for a transaction.
 
         Uses date, account, amount and description to create a consistent identifier.
+        
+        Args:
+            date: Transaction date (YYYY-MM-DD format string)
+            account: Transaction account
+            amount: Transaction amount
+            description: Transaction description
+            
+        Returns:
+            SHA256 hash of the transaction data
         """
-        # Use just the date part (YYYY-MM-DD) for consistency with CSV data
-        date_str = transaction.date.strftime('%Y-%m-%d') if hasattr(transaction.date, 'strftime') else str(transaction.date)
-        transaction_str = f"{date_str}|{transaction.account}|{transaction.amount}|{transaction.description}"
+        # Normalize date to YYYY-MM-DD format if needed
+        date_normalized = pd.to_datetime(date).strftime('%Y-%m-%d')
+        transaction_str = f"{date_normalized}|{account}|{amount}|{description}"
         return hashlib.sha256(transaction_str.encode()).hexdigest()
 
     def get_tags(self, transaction: Transaction) -> str:
         """Get the tags for a transaction (empty string if none)."""
-        return self.tags.get(self.hash_transaction(transaction), "")
+        date_str = transaction.date.strftime('%Y-%m-%d') if hasattr(transaction.date, 'strftime') else str(transaction.date)
+        return self.tags.get(self.hash_transaction(date_str, transaction.account, transaction.amount, transaction.description), "")
 
     def _normalize_tags(self, tags: str) -> str:
         """Normalize tags to lowercase and strip whitespace.
@@ -52,11 +62,7 @@ class TagManager:
             account: Transaction account
             tags: Comma-separated tags (will be normalized to lowercase)
         """
-        # Normalize date to YYYY-MM-DD format
-        import pandas as pd
-        date_normalized = pd.to_datetime(date).strftime('%Y-%m-%d')
-        transaction_str = f"{date_normalized}|{account}|{amount}|{description}"
-        tx_hash = hashlib.sha256(transaction_str.encode()).hexdigest()
+        tx_hash = self.hash_transaction(date, account, amount, description)
         normalized = self._normalize_tags(tags)
 
         if normalized:
@@ -108,13 +114,96 @@ class TagManager:
         except Exception as e:
             print(f"Warning: Could not load tags from {os.path.basename(csv_path)}: {e}")
 
+    def load_tags_from_directory(self, directory_path: str) -> None:
+        """Load tags from all CSV files in a directory.
+
+        Args:
+            directory_path: Path to the directory containing transaction CSV files
+        """
+        if not os.path.exists(directory_path):
+            return
+
+        # Iterate through all CSV files in the directory
+        for filename in os.listdir(directory_path):
+            if not filename.endswith(".csv"):
+                continue
+
+            filepath = os.path.join(directory_path, filename)
+            self.load_tags_from_csv(filepath)
+
     def apply_tags_to_transactions(self, banker) -> None:
-        """Apply loaded tags to transaction objects.
+        """Apply loaded tags to transaction objects as separate attributes.
 
         Args:
             banker: Banker instance containing accounts with transactions
+        
+        Tags are set as separate attributes on the transaction object.
+        For example, "home improvement, school" becomes:
+        - transaction.home_improvement = True
+        - transaction.school = True
         """
         for account, transaction in banker:
             tags = self.get_tags(transaction)
             if tags:
-                transaction.tag = tags
+                # Set each tag as a separate attribute (replace spaces with underscores)
+                for tag in tags.split(","):
+                    tag_clean = tag.strip()
+                    if tag_clean:
+                        # Convert tag to valid attribute name (replace spaces with underscores)
+                        attr_name = tag_clean.replace(" ", "_")
+                        setattr(transaction, attr_name, True)
+
+    def write_transactions_with_tags(self, banker, output_directory: str) -> None:
+        """Write transactions to a directory with tags.
+
+        Args:
+            banker: Banker instance containing accounts with transactions
+            output_directory: Directory to write transaction CSV files to
+        """
+        # Clear and recreate output directory
+        if os.path.exists(output_directory):
+            import shutil
+            shutil.rmtree(output_directory)
+        os.makedirs(output_directory, exist_ok=True)
+
+        # Collect all transactions with tags into a DataFrame
+        transactions_data = []
+        for account, transaction in banker:
+            # Collect all tag attributes from _extra_attributes
+            tag_attrs = []
+            if hasattr(transaction, '_extra_attributes'):
+                for attr, value in transaction._extra_attributes.items():
+                    if value is True:
+                        tag_attrs.append(attr.replace('_', ' '))
+            tags = ','.join(sorted(tag_attrs)) if tag_attrs else ''
+            
+            transactions_data.append(
+                {
+                    "date": transaction.date,
+                    "account": transaction.account,
+                    "amount": transaction.amount,
+                    "description": transaction.description,
+                    "tag": tags,
+                }
+            )
+
+        if not transactions_data:
+            return
+
+        # Create DataFrame and group by month
+        df = pd.DataFrame(transactions_data)
+        df["date"] = pd.to_datetime(df["date"])
+
+        # Write each month's transactions to a separate CSV
+        for month, group in df.groupby(df["date"].dt.to_period("M")):
+            # Format as MMYY.csv (e.g., 0525.csv for May 2025)
+            filename = f"{pd.Period(month).strftime('%m%y')}.csv"
+            filepath = os.path.join(output_directory, filename)
+            
+            # Sort and write using pandas
+            group_sorted = group.sort_values("date").reset_index(drop=True)
+            group_sorted.to_csv(
+                filepath,
+                columns=["date", "account", "amount", "description", "tag"],
+                index=False,
+            )
