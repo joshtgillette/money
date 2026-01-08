@@ -10,7 +10,7 @@ from transaction import Transaction
 
 
 class Banker:
-    TRANSACTIONS_PATH: str = "transactions"
+    TRANSACTIONS_PATH: str = "raw transactions"
 
     def __init__(self, *accounts: Account) -> None:
         self.accounts: List[Account] = list(accounts)
