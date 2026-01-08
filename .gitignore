@@ -16,3 +16,5 @@ wheels/
 raw transactions/
 statements/
 report/
+transactions/
+tags.json
