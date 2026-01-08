@@ -68,7 +68,8 @@ class Advisor:
     def _write_transactions_with_tags(self) -> None:
         """Write transactions to the transactions/ directory with tags."""
         # Clear and recreate transactions directory
-        shutil.rmtree(self.TRANSACTIONS_PATH, ignore_errors=True)
+        if os.path.exists(self.TRANSACTIONS_PATH):
+            shutil.rmtree(self.TRANSACTIONS_PATH)
         os.makedirs(self.TRANSACTIONS_PATH, exist_ok=True)
 
         # Collect all transactions with tags
@@ -153,6 +154,7 @@ class Advisor:
         """Sanitize a string for safe use as a filename.
 
         Removes path traversal characters and other unsafe characters.
+        Also handles Windows reserved names.
         """
         # Remove path separators and other dangerous characters
         safe_name = filename.replace("/", "_").replace("\\", "_").replace("..", "_")
@@ -160,5 +162,34 @@ class Advisor:
         safe_name = "".join(
             c for c in safe_name if c.isalnum() or c in (" ", "_", "-")
         )
+        # Strip leading/trailing whitespace and periods
+        safe_name = safe_name.strip(". ")
+        # Handle Windows reserved names
+        reserved_names = {
+            "CON",
+            "PRN",
+            "AUX",
+            "NUL",
+            "COM1",
+            "COM2",
+            "COM3",
+            "COM4",
+            "COM5",
+            "COM6",
+            "COM7",
+            "COM8",
+            "COM9",
+            "LPT1",
+            "LPT2",
+            "LPT3",
+            "LPT4",
+            "LPT5",
+            "LPT6",
+            "LPT7",
+            "LPT8",
+            "LPT9",
+        }
+        if safe_name.upper() in reserved_names:
+            safe_name = f"tag_{safe_name}"
         # Ensure the name isn't empty after sanitization
         return safe_name if safe_name else "unknown"
