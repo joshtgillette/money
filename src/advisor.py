@@ -56,7 +56,9 @@ class Advisor:
                 )
 
         # Recreate transactions directory with tags
-        self.tag_manager.write_transactions_with_tags(self.banker, self.TRANSACTIONS_PATH)
+        self.tag_manager.write_transactions_with_tags(
+            self.banker, self.TRANSACTIONS_PATH
+        )
 
         # Write monthly transactions to report
         for month, group in transactions.groupby(
@@ -82,11 +84,11 @@ class Advisor:
         for account, transaction in self.banker:
             # Check for tag attributes in _extra_attributes
             tag_attrs = []
-            if hasattr(transaction, '_extra_attributes'):
+            if hasattr(transaction, "_extra_attributes"):
                 for attr, value in transaction._extra_attributes.items():
                     if value is True:
-                        tag_attrs.append(attr.replace('_', ' '))
-            
+                        tag_attrs.append(attr.replace("_", " "))
+
             transaction_data = {
                 "date": transaction.date,
                 "account": transaction.account,
@@ -127,9 +129,7 @@ class Advisor:
         # Remove path separators and other dangerous characters
         safe_name = filename.replace("/", "_").replace("\\", "_").replace("..", "_")
         # Remove any other potentially problematic characters
-        safe_name = "".join(
-            c for c in safe_name if c.isalnum() or c in (" ", "_", "-")
-        )
+        safe_name = "".join(c for c in safe_name if c.isalnum() or c in (" ", "_", "-"))
         # Strip leading/trailing whitespace and periods
         safe_name = safe_name.strip(". ")
         # Ensure the name isn't empty after sanitization

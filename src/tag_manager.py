@@ -13,17 +13,19 @@ class TagManager:
     def __init__(self) -> None:
         self.tags: Dict[str, str] = {}  # hash -> comma-separated tags (lowercase)
 
-    def hash_transaction(self, date: str, account: str, amount: float, description: str) -> str:
+    def hash_transaction(
+        self, date: str, account: str, amount: float, description: str
+    ) -> str:
         """Generate a unique hash for a transaction.
 
         Uses date, account, amount and description to create a consistent identifier.
-        
+
         Args:
             date: Transaction date (YYYY-MM-DD format string)
             account: Transaction account
             amount: Transaction amount
             description: Transaction description
-            
+
         Returns:
             SHA256 hash of the transaction data
         """
@@ -35,15 +37,19 @@ class TagManager:
         """Get the tags for a transaction (empty string if none)."""
         return self.tags.get(
             self.hash_transaction(
-                transaction.date.strftime('%Y-%m-%d') if hasattr(transaction.date, 'strftime') else str(transaction.date),
+                transaction.date.strftime("%Y-%m-%d")
+                if hasattr(transaction.date, "strftime")
+                else str(transaction.date),
                 transaction.account,
                 transaction.amount,
-                transaction.description
+                transaction.description,
             ),
-            ""
+            "",
         )
 
-    def set_tags(self, amount: float, description: str, date: str, account: str, tags: str) -> None:
+    def set_tags(
+        self, amount: float, description: str, date: str, account: str, tags: str
+    ) -> None:
         """Set tags for a transaction using raw data.
 
         Args:
@@ -62,10 +68,14 @@ class TagManager:
             )
 
         if normalized:
-            self.tags[self.hash_transaction(date, account, amount, description)] = normalized
+            self.tags[self.hash_transaction(date, account, amount, description)] = (
+                normalized
+            )
         else:
             # Remove tag if empty
-            self.tags.pop(self.hash_transaction(date, account, amount, description), None)
+            self.tags.pop(
+                self.hash_transaction(date, account, amount, description), None
+            )
 
     def load_tags_from_csv(self, csv_path: str) -> None:
         """Load tags from a CSV file containing transaction data.
@@ -108,7 +118,9 @@ class TagManager:
                     )
                     continue
         except Exception as e:
-            print(f"Warning: Could not load tags from {os.path.basename(csv_path)}: {e}")
+            print(
+                f"Warning: Could not load tags from {os.path.basename(csv_path)}: {e}"
+            )
 
     def load_tags_from_directory(self, directory_path: str) -> None:
         """Load tags from all CSV files in a directory.
@@ -132,7 +144,7 @@ class TagManager:
 
         Args:
             banker: Banker instance containing accounts with transactions
-        
+
         Tags are set as separate attributes on the transaction object.
         For example, "home improvement, school" becomes:
         - transaction.home_improvement = True
@@ -159,6 +171,7 @@ class TagManager:
         # Clear and recreate output directory
         if os.path.exists(output_directory):
             import shutil
+
             shutil.rmtree(output_directory)
         os.makedirs(output_directory, exist_ok=True)
 
@@ -167,12 +180,12 @@ class TagManager:
         for account, transaction in banker:
             # Collect all tag attributes from _extra_attributes
             tag_attrs = []
-            if hasattr(transaction, '_extra_attributes'):
+            if hasattr(transaction, "_extra_attributes"):
                 for attr, value in transaction._extra_attributes.items():
                     if value is True:
-                        tag_attrs.append(attr.replace('_', ' '))
-            tags = ','.join(sorted(tag_attrs)) if tag_attrs else ''
-            
+                        tag_attrs.append(attr.replace("_", " "))
+            tags = ",".join(sorted(tag_attrs)) if tag_attrs else ""
+
             transactions_data.append(
                 {
                     "date": transaction.date,
@@ -195,7 +208,7 @@ class TagManager:
             # Format as MMYY.csv (e.g., 0525.csv for May 2025)
             filename = f"{pd.Period(month).strftime('%m%y')}.csv"
             filepath = os.path.join(output_directory, filename)
-            
+
             # Sort and write using pandas
             group_sorted = group.sort_values("date").reset_index(drop=True)
             group_sorted.to_csv(
