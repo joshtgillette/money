@@ -27,29 +27,20 @@ class TagManager:
         Returns:
             SHA256 hash of the transaction data
         """
-        # Normalize date to YYYY-MM-DD format if needed
-        date_normalized = pd.to_datetime(date).strftime('%Y-%m-%d')
-        transaction_str = f"{date_normalized}|{account}|{amount}|{description}"
-        return hashlib.sha256(transaction_str.encode()).hexdigest()
+        return hashlib.sha256(
+            f"{pd.to_datetime(date).strftime('%Y-%m-%d')}|{account}|{amount}|{description}".encode()
+        ).hexdigest()
 
     def get_tags(self, transaction: Transaction) -> str:
         """Get the tags for a transaction (empty string if none)."""
-        date_str = transaction.date.strftime('%Y-%m-%d') if hasattr(transaction.date, 'strftime') else str(transaction.date)
-        return self.tags.get(self.hash_transaction(date_str, transaction.account, transaction.amount, transaction.description), "")
-
-    def _normalize_tags(self, tags: str) -> str:
-        """Normalize tags to lowercase and strip whitespace.
-
-        Args:
-            tags: Comma-separated tags
-
-        Returns:
-            Normalized comma-separated tags, or empty string if no valid tags
-        """
-        if not tags.strip():
-            return ""
-        return ",".join(
-            tag.strip().lower() for tag in tags.split(",") if tag.strip()
+        return self.tags.get(
+            self.hash_transaction(
+                transaction.date.strftime('%Y-%m-%d') if hasattr(transaction.date, 'strftime') else str(transaction.date),
+                transaction.account,
+                transaction.amount,
+                transaction.description
+            ),
+            ""
         )
 
     def set_tags(self, amount: float, description: str, date: str, account: str, tags: str) -> None:
@@ -62,14 +53,19 @@ class TagManager:
             account: Transaction account
             tags: Comma-separated tags (will be normalized to lowercase)
         """
-        tx_hash = self.hash_transaction(date, account, amount, description)
-        normalized = self._normalize_tags(tags)
+        # Normalize tags to lowercase and strip whitespace
+        if not tags.strip():
+            normalized = ""
+        else:
+            normalized = ",".join(
+                tag.strip().lower() for tag in tags.split(",") if tag.strip()
+            )
 
         if normalized:
-            self.tags[tx_hash] = normalized
+            self.tags[self.hash_transaction(date, account, amount, description)] = normalized
         else:
             # Remove tag if empty
-            self.tags.pop(tx_hash, None)
+            self.tags.pop(self.hash_transaction(date, account, amount, description), None)
 
     def load_tags_from_csv(self, csv_path: str) -> None:
         """Load tags from a CSV file containing transaction data.
