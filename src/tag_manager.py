@@ -31,6 +31,19 @@ class TagManager:
         with open(self.TAGS_FILE, "w") as f:
             json.dump(self.tags, f, indent=2)
 
+    def _create_transaction_hash(self, amount: float, description: str) -> str:
+        """Create a hash from transaction amount and description.
+
+        Args:
+            amount: Transaction amount
+            description: Transaction description
+
+        Returns:
+            SHA256 hash of the transaction data
+        """
+        transaction_str = f"{amount}|{description}"
+        return hashlib.sha256(transaction_str.encode()).hexdigest()
+
     def hash_transaction(self, transaction: Transaction) -> str:
         """Generate a unique hash for a transaction.
 
@@ -38,10 +51,7 @@ class TagManager:
         Date is intentionally excluded to allow tags to persist across
         different transaction downloads with overlapping time periods.
         """
-        # Create a string representation of the transaction's key attributes
-        transaction_str = f"{transaction.amount}|{transaction.description}"
-        # Return SHA256 hash
-        return hashlib.sha256(transaction_str.encode()).hexdigest()
+        return self._create_transaction_hash(transaction.amount, transaction.description)
 
     def get_tags(self, transaction: Transaction) -> str:
         """Get the tags for a transaction (empty string if none)."""
@@ -76,8 +86,7 @@ class TagManager:
             tags: Comma-separated tags (will be normalized to lowercase)
         """
         # Create hash using the same logic as hash_transaction
-        transaction_str = f"{amount}|{description}"
-        tx_hash = hashlib.sha256(transaction_str.encode()).hexdigest()
+        tx_hash = self._create_transaction_hash(amount, description)
 
         # Normalize tags to lowercase and strip whitespace
         if tags.strip():

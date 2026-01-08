@@ -73,8 +73,6 @@ class Advisor:
         if not os.path.exists(self.TRANSACTIONS_PATH):
             return
 
-        import pandas as pd
-
         # Iterate through all CSV files in the transactions directory
         for filename in os.listdir(self.TRANSACTIONS_PATH):
             if not filename.endswith(".csv"):
@@ -93,11 +91,18 @@ class Advisor:
                 # Load tags from the CSV file
                 for _, row in df.iterrows():
                     if pd.notna(row["tag"]) and row["tag"].strip():
-                        self.tag_manager.set_tags_by_data(
-                            amount=float(row["amount"]),
-                            description=str(row["description"]),
-                            tags=str(row["tag"]),
-                        )
+                        try:
+                            amount = float(row["amount"])
+                            self.tag_manager.set_tags_by_data(
+                                amount=amount,
+                                description=str(row["description"]),
+                                tags=str(row["tag"]),
+                            )
+                        except (ValueError, TypeError) as e:
+                            print(
+                                f"Warning: Invalid data in {filename}: {e}"
+                            )
+                            continue
             except Exception as e:
                 print(f"Warning: Could not load tags from {filename}: {e}")
                 continue
