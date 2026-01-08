@@ -79,36 +79,7 @@ class Advisor:
                 continue
 
             filepath = os.path.join(self.TRANSACTIONS_PATH, filename)
-            try:
-                df = pd.read_csv(filepath)
-                # Check if the file has the expected columns
-                required_cols = ["amount", "description", "tag"]
-                missing_cols = [col for col in required_cols if col not in df.columns]
-                if missing_cols:
-                    print(
-                        f"Warning: Skipping {filename} - missing columns: {', '.join(missing_cols)}"
-                    )
-                    continue
-
-                # Load tags from the CSV file
-                for _, row in df.iterrows():
-                    try:
-                        amount = float(row["amount"])
-                        # Process all rows, including those with empty tags (for removal)
-                        tag_value = "" if pd.isna(row["tag"]) else str(row["tag"]).strip()
-                        self.tag_manager.set_tags_by_data(
-                            amount=amount,
-                            description=str(row["description"]),
-                            tags=tag_value,
-                        )
-                    except (ValueError, TypeError) as e:
-                        print(
-                            f"Warning: Invalid data in {filename} for amount '{row['amount']}': {e}"
-                        )
-                        continue
-            except Exception as e:
-                print(f"Warning: Could not load tags from {filename}: {e}")
-                continue
+            self.tag_manager.load_tags_from_csv(filepath)
 
     def _write_transactions_with_tags(self) -> None:
         """Write transactions to the transactions/ directory with tags."""
@@ -117,7 +88,7 @@ class Advisor:
             shutil.rmtree(self.TRANSACTIONS_PATH)
         os.makedirs(self.TRANSACTIONS_PATH, exist_ok=True)
 
-        # Collect all transactions with tags
+        # Collect all transactions with tags into a DataFrame
         transactions_data = []
         for account, transaction in self.banker:
             tags = self.tag_manager.get_tags(transaction)
@@ -138,12 +109,12 @@ class Advisor:
         df = pd.DataFrame(transactions_data)
         df["date"] = pd.to_datetime(df["date"])
 
+        # Write each month's transactions to a separate CSV
         for month, group in df.groupby(df["date"].dt.to_period("M")):
-            # Format as MMYY.csv (e.g., 0525.csv for May 2025)
             filename = f"{pd.Period(month).strftime('%m%y')}.csv"
             filepath = os.path.join(self.TRANSACTIONS_PATH, filename)
-
-            # Sort by date and write to CSV
+            
+            # Sort and write using pandas
             group_sorted = group.sort_values("date").reset_index(drop=True)
             group_sorted.to_csv(
                 filepath,
@@ -199,7 +170,6 @@ class Advisor:
         """Sanitize a string for safe use as a filename.
 
         Removes path traversal characters and other unsafe characters.
-        Also handles Windows reserved names.
         """
         # Remove path separators and other dangerous characters
         safe_name = filename.replace("/", "_").replace("\\", "_").replace("..", "_")
@@ -209,32 +179,5 @@ class Advisor:
         )
         # Strip leading/trailing whitespace and periods
         safe_name = safe_name.strip(". ")
-        # Handle Windows reserved names
-        reserved_names = {
-            "CON",
-            "PRN",
-            "AUX",
-            "NUL",
-            "COM1",
-            "COM2",
-            "COM3",
-            "COM4",
-            "COM5",
-            "COM6",
-            "COM7",
-            "COM8",
-            "COM9",
-            "LPT1",
-            "LPT2",
-            "LPT3",
-            "LPT4",
-            "LPT5",
-            "LPT6",
-            "LPT7",
-            "LPT8",
-            "LPT9",
-        }
-        if safe_name.upper() in reserved_names:
-            safe_name = f"tag_{safe_name}"
         # Ensure the name isn't empty after sanitization
         return safe_name if safe_name else "unknown"

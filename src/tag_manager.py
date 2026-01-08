@@ -117,3 +117,46 @@ class TagManager:
             if tags_str:
                 all_tags.update(tags_str.split(","))
         return all_tags
+
+    def load_tags_from_csv(self, csv_path: str) -> None:
+        """Load tags from a CSV file containing transaction data.
+
+        Args:
+            csv_path: Path to the CSV file with transaction data and tags
+
+        The CSV file should have columns: amount, description, tag
+        """
+        import pandas as pd
+
+        if not os.path.exists(csv_path):
+            return
+
+        try:
+            df = pd.read_csv(csv_path)
+            # Check if the file has the expected columns
+            required_cols = ["amount", "description", "tag"]
+            missing_cols = [col for col in required_cols if col not in df.columns]
+            if missing_cols:
+                print(
+                    f"Warning: Skipping {os.path.basename(csv_path)} - missing columns: {', '.join(missing_cols)}"
+                )
+                return
+
+            # Load tags from the CSV file
+            for _, row in df.iterrows():
+                try:
+                    amount = float(row["amount"])
+                    # Process all rows, including those with empty tags (for removal)
+                    tag_value = "" if pd.isna(row["tag"]) else str(row["tag"]).strip()
+                    self.set_tags_by_data(
+                        amount=amount,
+                        description=str(row["description"]),
+                        tags=tag_value,
+                    )
+                except (ValueError, TypeError) as e:
+                    print(
+                        f"Warning: Invalid data in {os.path.basename(csv_path)} for amount '{row['amount']}': {e}"
+                    )
+                    continue
+        except Exception as e:
+            print(f"Warning: Could not load tags from {os.path.basename(csv_path)}: {e}")
