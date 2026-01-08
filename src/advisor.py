@@ -42,3 +42,12 @@ class Advisor:
                     f"accounts/{account.name.lower()}",
                     columns=["date", "amount", "description"],
                 )
+
+        # Write monthly transactions
+        for month, group in transactions.groupby(
+            transactions["date"].dt.to_period("M")
+        ):
+            self.report.write_transactions(
+                group,
+                f"monthly/{pd.Period(month).strftime('%m%y')}.csv",
+            )
