@@ -3,6 +3,8 @@ import json
 import os
 from typing import Dict, Set
 
+import pandas as pd
+
 from transaction import Transaction
 
 
@@ -126,8 +128,6 @@ class TagManager:
 
         The CSV file should have columns: amount, description, tag
         """
-        import pandas as pd
-
         if not os.path.exists(csv_path):
             return
 

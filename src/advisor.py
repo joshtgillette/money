@@ -111,6 +111,7 @@ class Advisor:
 
         # Write each month's transactions to a separate CSV
         for month, group in df.groupby(df["date"].dt.to_period("M")):
+            # Format as MMYY.csv (e.g., 0525.csv for May 2025)
             filename = f"{pd.Period(month).strftime('%m%y')}.csv"
             filepath = os.path.join(self.TRANSACTIONS_PATH, filename)
             
