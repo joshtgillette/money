@@ -17,6 +17,9 @@ class Advisor:
         self.tag_manager: TagManager = TagManager()
 
     def start(self) -> None:
+        # Load existing tags from transactions directory before loading new data
+        self._load_existing_tags()
+
         # Direct the banker to load transactions for the specified date range
         self.banker.load()
         if sum(len(account.transactions) for account in self.banker.accounts) == 0:
@@ -64,6 +67,40 @@ class Advisor:
 
         # Generate tag-based reports
         self._generate_tag_reports()
+
+    def _load_existing_tags(self) -> None:
+        """Load tags from existing transactions CSV files before loading new data."""
+        if not os.path.exists(self.TRANSACTIONS_PATH):
+            return
+
+        import pandas as pd
+
+        # Iterate through all CSV files in the transactions directory
+        for filename in os.listdir(self.TRANSACTIONS_PATH):
+            if not filename.endswith(".csv"):
+                continue
+
+            filepath = os.path.join(self.TRANSACTIONS_PATH, filename)
+            try:
+                df = pd.read_csv(filepath)
+                # Check if the file has the expected columns
+                if not all(
+                    col in df.columns
+                    for col in ["amount", "description", "tag"]
+                ):
+                    continue
+
+                # Load tags from the CSV file
+                for _, row in df.iterrows():
+                    if pd.notna(row["tag"]) and row["tag"].strip():
+                        self.tag_manager.set_tags_by_data(
+                            amount=float(row["amount"]),
+                            description=str(row["description"]),
+                            tags=str(row["tag"]),
+                        )
+            except Exception as e:
+                print(f"Warning: Could not load tags from {filename}: {e}")
+                continue
 
     def _write_transactions_with_tags(self) -> None:
         """Write transactions to the transactions/ directory with tags."""

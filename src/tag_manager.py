@@ -67,6 +67,29 @@ class TagManager:
             self.tags.pop(tx_hash, None)
         self.save()
 
+    def set_tags_by_data(self, amount: float, description: str, tags: str) -> None:
+        """Set tags for a transaction using raw data instead of Transaction object.
+
+        Args:
+            amount: Transaction amount
+            description: Transaction description
+            tags: Comma-separated tags (will be normalized to lowercase)
+        """
+        # Create hash using the same logic as hash_transaction
+        transaction_str = f"{amount}|{description}"
+        tx_hash = hashlib.sha256(transaction_str.encode()).hexdigest()
+
+        # Normalize tags to lowercase and strip whitespace
+        if tags.strip():
+            normalized_tags = ",".join(
+                tag.strip().lower() for tag in tags.split(",") if tag.strip()
+            )
+            self.tags[tx_hash] = normalized_tags
+        else:
+            # Remove tag if empty
+            self.tags.pop(tx_hash, None)
+        self.save()
+
     def get_all_unique_tags(self) -> Set[str]:
         """Get a set of all unique tags across all transactions."""
         all_tags: Set[str] = set()
