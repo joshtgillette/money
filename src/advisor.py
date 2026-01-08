@@ -16,22 +16,22 @@ class Advisor:
             self.report.note("No transactions loaded.")
             return
 
-        self.report.note_header("TRANSFER REMOVAL")
-        self.banker.identify_returns()
-        self.banker.identify_transfers()
-        self.report.note(self.banker.get_log())
+        # self.report.note_header("TRANSFER REMOVAL")
+        # self.banker.identify_returns()
+        # self.banker.identify_transfers()
+        # self.report.note(self.banker.get_log())
 
         # Write transactions data to the report
         transactions: pd.DataFrame = self.banker.get_transactions()
         self.report.write_transactions(transactions, "all")
-        non_transfer_transactions: pd.DataFrame = self.banker.get_transactions(
-            lambda t: not t.is_transfer
-        )
-        self.report.write_transactions(non_transfer_transactions, "all - no transfers")
+        # non_transfer_transactions: pd.DataFrame = self.banker.get_transactions(
+        #     lambda t: not t.is_transfer
+        # )
+        # self.report.write_transactions(non_transfer_transactions, "all - no transfers")
         self.report.note(
             f"loaded {len(self.banker.accounts)} bank accounts "
-            f"with {len(transactions)} total transactions, "
-            f"{len(non_transfer_transactions)} non-transfers\n"
+            f"with {len(transactions)} total transactions\n"
+            # f"{len(non_transfer_transactions)} non-transfers\n"
         )
 
         # Write account transactions - pass transaction lists directly
