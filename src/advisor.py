@@ -82,10 +82,12 @@ class Advisor:
             try:
                 df = pd.read_csv(filepath)
                 # Check if the file has the expected columns
-                if not all(
-                    col in df.columns
-                    for col in ["amount", "description", "tag"]
-                ):
+                required_cols = ["amount", "description", "tag"]
+                missing_cols = [col for col in required_cols if col not in df.columns]
+                if missing_cols:
+                    print(
+                        f"Warning: Skipping {filename} - missing columns: {', '.join(missing_cols)}"
+                    )
                     continue
 
                 # Load tags from the CSV file
@@ -100,7 +102,7 @@ class Advisor:
                             )
                         except (ValueError, TypeError) as e:
                             print(
-                                f"Warning: Invalid data in {filename}: {e}"
+                                f"Warning: Invalid data in {filename} for amount '{row['amount']}': {e}"
                             )
                             continue
             except Exception as e:

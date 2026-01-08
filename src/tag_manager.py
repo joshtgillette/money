@@ -58,6 +58,22 @@ class TagManager:
         tx_hash = self.hash_transaction(transaction)
         return self.tags.get(tx_hash, "")
 
+    def _normalize_tags(self, tags: str) -> str:
+        """Normalize tags to lowercase and strip whitespace.
+
+        Args:
+            tags: Comma-separated tags
+
+        Returns:
+            Normalized comma-separated tags, or empty string if no valid tags
+        """
+        if not tags.strip():
+            return ""
+        normalized_tags = ",".join(
+            tag.strip().lower() for tag in tags.split(",") if tag.strip()
+        )
+        return normalized_tags
+
     def set_tags(self, transaction: Transaction, tags: str) -> None:
         """Set tags for a transaction.
 
@@ -66,11 +82,9 @@ class TagManager:
             tags: Comma-separated tags (will be normalized to lowercase)
         """
         tx_hash = self.hash_transaction(transaction)
-        # Normalize tags to lowercase and strip whitespace
-        if tags.strip():
-            normalized_tags = ",".join(
-                tag.strip().lower() for tag in tags.split(",") if tag.strip()
-            )
+        normalized_tags = self._normalize_tags(tags)
+        
+        if normalized_tags:
             self.tags[tx_hash] = normalized_tags
         else:
             # Remove tag if empty
@@ -87,12 +101,9 @@ class TagManager:
         """
         # Create hash using the same logic as hash_transaction
         tx_hash = self._create_transaction_hash(amount, description)
+        normalized_tags = self._normalize_tags(tags)
 
-        # Normalize tags to lowercase and strip whitespace
-        if tags.strip():
-            normalized_tags = ",".join(
-                tag.strip().lower() for tag in tags.split(",") if tag.strip()
-            )
+        if normalized_tags:
             self.tags[tx_hash] = normalized_tags
         else:
             # Remove tag if empty
