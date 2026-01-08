@@ -92,19 +92,20 @@ class Advisor:
 
                 # Load tags from the CSV file
                 for _, row in df.iterrows():
-                    if pd.notna(row["tag"]) and row["tag"].strip():
-                        try:
-                            amount = float(row["amount"])
-                            self.tag_manager.set_tags_by_data(
-                                amount=amount,
-                                description=str(row["description"]),
-                                tags=str(row["tag"]),
-                            )
-                        except (ValueError, TypeError) as e:
-                            print(
-                                f"Warning: Invalid data in {filename} for amount '{row['amount']}': {e}"
-                            )
-                            continue
+                    try:
+                        amount = float(row["amount"])
+                        # Process all rows, including those with empty tags (for removal)
+                        tag_value = "" if pd.isna(row["tag"]) else str(row["tag"]).strip()
+                        self.tag_manager.set_tags_by_data(
+                            amount=amount,
+                            description=str(row["description"]),
+                            tags=tag_value,
+                        )
+                    except (ValueError, TypeError) as e:
+                        print(
+                            f"Warning: Invalid data in {filename} for amount '{row['amount']}': {e}"
+                        )
+                        continue
             except Exception as e:
                 print(f"Warning: Could not load tags from {filename}: {e}")
                 continue
