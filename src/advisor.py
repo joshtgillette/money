@@ -18,8 +18,13 @@ class Advisor:
         self.tagger.load_existing_tags(self.banker)
 
         # Direct the banker to load transactions for the specified date range
-        self.banker.load()
-        if sum(len(account.transactions) for account in self.banker.accounts) == 0:
+        self.banker.read_account_transactions()
+        if (
+            sum(
+                len(account.transactions) for _, account in self.banker.accounts.items()
+            )
+            == 0
+        ):
             self.report.note("No transactions loaded.")
             return
 
@@ -45,11 +50,11 @@ class Advisor:
         )
 
         # Write account transactions - pass transaction lists directly
-        for account in self.banker.accounts:
+        for account_name, account in self.banker.accounts.items():
             if account.transactions:
                 self.report.write_transactions(
                     account.transactions.values(),
-                    f"accounts/{account.name.lower()}",
+                    f"accounts/{account_name.lower()}",
                     columns=["date", "amount", "description"],
                 )
 

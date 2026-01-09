@@ -7,30 +7,12 @@ from transaction import Transaction
 class ESL(BankAccount):
     def __init__(self, name: str) -> None:
         super().__init__(name)
-        self.raw_transactions: pd.DataFrame = pd.DataFrame()
-
-    def normalize(self) -> None:
-        """Convert ESL's CSV format to standard transaction format."""
-        if self.raw_transactions.empty:
-            return
-
-        self._build_transactions_from_dataframe(
-            pd.DataFrame(
-                {
-                    "date": pd.to_datetime(self.raw_transactions["Date"]),
-                    "amount": pd.Series(
-                        pd.to_numeric(self.raw_transactions["Amount Credit"])
-                    ).fillna(0)
-                    + pd.Series(
-                        pd.to_numeric(self.raw_transactions["Amount Debit"])
-                    ).fillna(0),
-                    "description": self.raw_transactions["Description"]
-                    + " "
-                    + self.raw_transactions["Memo"].fillna("").str.strip(),
-                }
-            )
-            .sort_values("date")
-            .reset_index(drop=True)
+        self.date_normalizer = lambda df: pd.to_datetime(df["Date"])
+        self.amount_normalizer = lambda df: pd.to_numeric(df["Amount Credit"]).fillna(
+            0
+        ) + pd.to_numeric(df["Amount Debit"]).fillna(0)
+        self.description_normalizer = (
+            lambda df: df["Description"] + " " + df["Memo"].fillna("").str.strip()
         )
 
     def is_transaction_income(self, transaction: Transaction) -> bool:

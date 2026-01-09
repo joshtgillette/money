@@ -23,11 +23,13 @@ The system supports manual tagging of transactions to categorize them for better
 #### Example Usage
 
 1. Run the program to load transactions:
+
    ```bash
    python src/main.py
    ```
 
 2. Open `transactions/0525.csv` and add tags to the tag column:
+
    ```csv
    date,account,amount,description,tag
    2024-05-15,SoFi Checking,1500.0,COMCAST (CC) OF PAYROLL,income
@@ -42,12 +44,14 @@ The system supports manual tagging of transactions to categorize them for better
 #### Tag Reports
 
 After running the program, check the `report/transactions/tags/` directory for:
+
 - A CSV file for each tag containing all transactions with that tag
 - `untagged.csv` containing all transactions without tags
 
 #### Transaction Matching
 
 Tags are matched based on:
+
 - **Date**: The transaction date
 - **Account**: The transaction account
 - **Amount**: The transaction amount
@@ -59,7 +63,7 @@ This means each unique transaction (same date, account, amount, and description)
 
 ```
 money/
-├── raw transactions/      # Raw CSV files from banks (input)
+├── source transactions/      # Source CSV files from banks (input)
 ├── transactions/          # Normalized transactions with tags (editable)
 ├── report/               # Generated reports
 │   ├── transactions/
@@ -74,11 +78,12 @@ Note: `tags.json` is not used; tags are loaded from the `transactions/` CSV file
 ## Setup
 
 1. Install dependencies:
+
    ```bash
    pip install pandas
    ```
 
-2. Place your bank transaction CSV files in the `raw transactions/` directory, named according to your account names (e.g., `sofi checking.csv`).
+2. Place your bank transaction CSV files in the `source transactions/` directory, named according to your account names (e.g., `sofi checking.csv`).
 
 3. Run the program:
    ```bash
@@ -88,6 +93,7 @@ Note: `tags.json` is not used; tags are loaded from the `transactions/` CSV file
 ## Supported Banks
 
 The system currently supports the following banks with their specific CSV formats:
+
 - SoFi (Checking and Savings)
 - Apple (Savings)
 - PNC (Checking and Savings)
