@@ -1,5 +1,6 @@
 import os
 from difflib import SequenceMatcher
+from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 import pandas as pd
@@ -21,19 +22,20 @@ class Banker:
         name_account_mapping: Dict[str, Account] = {
             account.name.lower(): account for account in self.accounts
         }
-        for root, _, files in os.walk(self.TRANSACTIONS_PATH):
-            for file in files:
-                if not file.endswith(".csv"):
-                    continue
-
-                key: str = file[:-4].lower()
-                if key in name_account_mapping:
-                    name_account_mapping[key].load_transactions(
-                        os.path.join(root, file)
-                    )
+        for csv_file in [
+            str(path) for path in self.discover_csvs(self.TRANSACTIONS_PATH)
+        ]:
+            key: str = csv_file[csv_file.rfind("/") + 1 :].replace(".csv", "")
+            if key in name_account_mapping:
+                name_account_mapping[key].load_transactions(csv_file)
 
         for account in self.accounts:
             account.normalize()
+
+    @staticmethod
+    def discover_csvs(path: str) -> List[Path]:
+        """Recursively discover all CSV files in the given path."""
+        return list(Path(path).rglob("*.csv"))
 
     def __iter__(self) -> Iterator[Tuple[Account, Transaction]]:
         for account in self.accounts:

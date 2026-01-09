@@ -10,69 +10,53 @@ from transaction import Transaction
 class Tagger:
     """Manages transaction tags loaded from CSV files."""
 
+    TRANSACTIONS_PATH: str = "transactions"
+
     def __init__(self) -> None:
         self.tags: Dict[str, str] = {}  # hash -> comma-separated tags (lowercase)
 
-    def load_tags_from_directory(self, directory_path: str) -> None:
-        """Load tags from all CSV files in a directory.
-
-        Args:
-            directory_path: Path to the directory containing transaction CSV files
-        """
-        if not os.path.exists(directory_path):
-            return
-
-        # Iterate through all CSV files in the directory
-        for filename in os.listdir(directory_path):
-            if not filename.endswith(".csv"):
-                continue
-
-            filepath = os.path.join(directory_path, filename)
-            self.load_tags_from_csv(filepath)
-
-    def load_tags_from_csv(self, csv_path: str) -> None:
+    def load_existing_tags(self, banker) -> None:
         """Load tags from a CSV file containing transaction data.
 
         Args:
-            csv_path: Path to the CSV file with transaction data and tags
-
-        The CSV file should have columns: date, amount, description, tag
+            banker: Banker to discover csvs
         """
-        if not os.path.exists(csv_path):
-            return
 
-        try:
-            df = pd.read_csv(csv_path)
-            # Check if the file has the expected columns
-            required_cols = ["date", "amount", "description", "tag"]
-            missing_cols = [col for col in required_cols if col not in df.columns]
-            if missing_cols:
-                print(
-                    f"Warning: Skipping {os.path.basename(csv_path)} - missing columns: {', '.join(missing_cols)}"
-                )
-                return
-
-            # Load tags from the CSV file
-            for _, row in df.iterrows():
-                try:
-                    amount = float(row["amount"])
-                    # Process all rows, including those with empty tags (for removal)
-                    tag_value = "" if pd.isna(row["tag"]) else str(row["tag"]).strip()
-                    self.set_tags(
-                        amount=amount,
-                        description=str(row["description"]),
-                        date=str(row["date"]),
-                        tags=tag_value,
-                    )
-                except (ValueError, TypeError) as e:
+        for csv_path in banker.discover_csvs(self.TRANSACTIONS_PATH):
+            try:
+                df = pd.read_csv(csv_path)
+                # Check if the file has the expected columns
+                required_cols = ["date", "amount", "description", "tag"]
+                missing_cols = [col for col in required_cols if col not in df.columns]
+                if missing_cols:
                     print(
-                        f"Warning: Invalid data in {os.path.basename(csv_path)} for amount '{row['amount']}': {e}"
+                        f"Warning: Skipping {os.path.basename(csv_path)} - missing columns: {', '.join(missing_cols)}"
                     )
-                    continue
-        except Exception as e:
-            print(
-                f"Warning: Could not load tags from {os.path.basename(csv_path)}: {e}"
-            )
+                    return
+
+                # Load tags from the CSV file
+                for _, row in df.iterrows():
+                    try:
+                        amount = float(row["amount"])
+                        # Process all rows, including those with empty tags (for removal)
+                        tag_value = (
+                            "" if pd.isna(row["tag"]) else str(row["tag"]).strip()
+                        )
+                        self.set_tags(
+                            amount=amount,
+                            description=str(row["description"]),
+                            date=str(row["date"]),
+                            tags=tag_value,
+                        )
+                    except (ValueError, TypeError) as e:
+                        print(
+                            f"Warning: Invalid data in {os.path.basename(csv_path)} for amount '{row['amount']}': {e}"
+                        )
+                        continue
+            except Exception as e:
+                print(
+                    f"Warning: Could not load tags from {os.path.basename(csv_path)}: {e}"
+                )
 
     def set_tags(self, amount: float, description: str, date: str, tags: str) -> None:
         """Set tags for a transaction using raw data.
@@ -149,19 +133,19 @@ class Tagger:
             "",
         )
 
-    def write_transactions_with_tags(self, banker, output_directory: str) -> None:
+    def write_transactions_with_tags(self, banker) -> None:
         """Write transactions to a directory with tags.
 
         Args:
             banker: Banker instance containing accounts with transactions
-            output_directory: Directory to write transaction CSV files to
+            self.TRANSACTIONS_PATH: Directory to write transaction CSV files to
         """
         # Clear and recreate output directory
-        if os.path.exists(output_directory):
+        if os.path.exists(self.TRANSACTIONS_PATH):
             import shutil
 
-            shutil.rmtree(output_directory)
-        os.makedirs(output_directory, exist_ok=True)
+            shutil.rmtree(self.TRANSACTIONS_PATH)
+        os.makedirs(self.TRANSACTIONS_PATH, exist_ok=True)
 
         # Collect all transactions with tags into a DataFrame
         transactions_data = []
@@ -195,7 +179,7 @@ class Tagger:
         for month, group in df.groupby(df["date"].dt.to_period("M")):
             # Format as MMYY.csv (e.g., 0525.csv for May 2025)
             filename = f"{pd.Period(month).strftime('%m%y')}.csv"
-            filepath = os.path.join(output_directory, filename)
+            filepath = os.path.join(self.TRANSACTIONS_PATH, filename)
 
             # Sort and write using pandas
             group_sorted = group.sort_values("date").reset_index(drop=True)

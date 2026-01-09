@@ -8,8 +8,6 @@ from tagger import Tagger
 
 
 class Advisor:
-    TRANSACTIONS_PATH: str = "transactions"
-
     def __init__(self, banker: Banker) -> None:
         self.banker: Banker = banker
         self.report: Report = Report()
@@ -17,7 +15,7 @@ class Advisor:
 
     def start(self) -> None:
         # Load existing tags from transactions directory before loading new data
-        self.tagger.load_tags_from_directory(self.TRANSACTIONS_PATH)
+        self.tagger.load_existing_tags(self.banker)
 
         # Direct the banker to load transactions for the specified date range
         self.banker.load()
@@ -56,7 +54,7 @@ class Advisor:
                 )
 
         # Recreate transactions directory with tags
-        self.tagger.write_transactions_with_tags(self.banker, self.TRANSACTIONS_PATH)
+        self.tagger.write_transactions_with_tags(self.banker)
 
         # Write monthly transactions to report
         for month, group in transactions.groupby(
