@@ -1,7 +1,7 @@
-import os
+from datetime import datetime
 from difflib import SequenceMatcher
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, cast
 
 import pandas as pd
 
@@ -11,26 +11,41 @@ from transaction import Transaction
 
 
 class Banker:
-    TRANSACTIONS_PATH: str = "raw transactions"
+    SOURCE_TRANSACTIONS_PATH: str = "source transactions"
 
     def __init__(self, *accounts: Account) -> None:
-        self.accounts: List[Account] = list(accounts)
+        self.accounts: Dict[str, Account] = {
+            account.name.lower(): account for account in accounts
+        }
         self.transactions: pd.DataFrame = pd.DataFrame()
         self.log: List[str] = []
 
-    def load(self) -> None:
-        name_account_mapping: Dict[str, Account] = {
-            account.name.lower(): account for account in self.accounts
-        }
-        for csv_file in [
-            str(path) for path in self.discover_csvs(self.TRANSACTIONS_PATH)
-        ]:
-            key: str = csv_file[csv_file.rfind("/") + 1 :].replace(".csv", "")
-            if key in name_account_mapping:
-                name_account_mapping[key].load_transactions(csv_file)
+    def read_account_transactions(self) -> None:
+        for csv_path in self.discover_csvs(self.SOURCE_TRANSACTIONS_PATH):
+            account = self.accounts.get(csv_path.name.replace(".csv", ""), None)
+            if not account:
+                continue
 
-        for account in self.accounts:
-            account.normalize()
+            account.add_source_transactions(csv_path)
+
+        for _, account in self.accounts.items():
+            account.transactions = self.load_transactions(
+                account.normalize_source_transactions()
+            )
+
+    @staticmethod
+    def load_transactions(transactions_data: pd.DataFrame) -> Dict[int, Transaction]:
+        transactions: Dict[int, Transaction] = {}
+        for row in transactions_data.itertuples():
+            index = cast(int, row.Index)
+            transactions[index] = Transaction(
+                index=index,
+                date=cast(datetime, row.date),
+                amount=cast(float, row.amount),
+                description=cast(str, row.description),
+            )
+
+        return transactions
 
     @staticmethod
     def discover_csvs(path: str) -> List[Path]:
@@ -38,7 +53,7 @@ class Banker:
         return list(Path(path).rglob("*.csv"))
 
     def __iter__(self) -> Iterator[Tuple[Account, Transaction]]:
-        for account in self.accounts:
+        for _, account in self.accounts.items():
             for transaction in account.transactions.values():
                 transaction.account = account.name
                 yield account, transaction

@@ -13,7 +13,7 @@ wheels/
 .venv
 
 # Project files
-raw transactions/
+source transactions/
 statements/
 report/
 transactions/

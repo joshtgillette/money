@@ -7,22 +7,6 @@ class WellsFargo(CreditCard):
     def __init__(self, name: str) -> None:
         super().__init__(name)
         self.header_val = None  # Wells Fargo does not provide CSV header
-
-    def normalize(self) -> None:
-        """Convert Wells Fargo's CSV format to standard transaction format."""
-        if self.raw_transactions.empty:
-            return
-
-        self._build_transactions_from_dataframe(
-            pd.DataFrame(
-                {
-                    "date": pd.to_datetime(self.raw_transactions.iloc[:, 0]),
-                    "amount": pd.to_numeric(
-                        pd.to_numeric(self.raw_transactions.iloc[:, 1])
-                    ),
-                    "description": self.raw_transactions.iloc[:, 4],
-                }
-            )
-            .sort_values("date")
-            .reset_index(drop=True)
-        )
+        self.date_normalizer = lambda df: pd.to_datetime(df.iloc[:, 0])
+        self.amount_normalizer = lambda df: pd.to_numeric(df.iloc[:, 1])
+        self.description_normalizer = lambda df: df.iloc[:, 4]
