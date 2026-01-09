@@ -4,20 +4,18 @@ import pandas as pd
 
 from accounts.banker import Banker
 from report import Report
-from tag_manager import TagManager
+from tagger import Tagger
 
 
 class Advisor:
-    TRANSACTIONS_PATH: str = "transactions"
-
     def __init__(self, banker: Banker) -> None:
         self.banker: Banker = banker
         self.report: Report = Report()
-        self.tag_manager: TagManager = TagManager()
+        self.tagger: Tagger = Tagger()
 
     def start(self) -> None:
         # Load existing tags from transactions directory before loading new data
-        self.tag_manager.load_tags_from_directory(self.TRANSACTIONS_PATH)
+        self.tagger.load_existing_tags(self.banker)
 
         # Direct the banker to load transactions for the specified date range
         self.banker.load()
@@ -26,7 +24,7 @@ class Advisor:
             return
 
         # Apply tags to loaded transactions
-        self.tag_manager.apply_tags_to_transactions(self.banker)
+        self.tagger.apply_tags_to_transactions(self.banker)
 
         # self.report.note_header("TRANSFER REMOVAL")
         # self.banker.identify_returns()
@@ -56,9 +54,7 @@ class Advisor:
                 )
 
         # Recreate transactions directory with tags
-        self.tag_manager.write_transactions_with_tags(
-            self.banker, self.TRANSACTIONS_PATH
-        )
+        self.tagger.write_transactions_with_tags(self.banker)
 
         # Write monthly transactions to report
         for month, group in transactions.groupby(
