@@ -13,16 +13,13 @@ class Tagger:
     def __init__(self) -> None:
         self.tags: Dict[str, str] = {}  # hash -> comma-separated tags (lowercase)
 
-    def hash_transaction(
-        self, date: str, account: str, amount: float, description: str
-    ) -> str:
+    def hash_transaction(self, date: str, amount: float, description: str) -> str:
         """Generate a unique hash for a transaction.
 
         Uses date, account, amount and description to create a consistent identifier.
 
         Args:
             date: Transaction date (YYYY-MM-DD format string)
-            account: Transaction account
             amount: Transaction amount
             description: Transaction description
 
@@ -30,7 +27,7 @@ class Tagger:
             SHA256 hash of the transaction data
         """
         return hashlib.sha256(
-            f"{pd.to_datetime(date).strftime('%Y-%m-%d')}|{account}|{amount}|{description}".encode()
+            f"{pd.to_datetime(date).strftime('%Y-%m-%d')}|{amount}|{description}".encode()
         ).hexdigest()
 
     def get_tags(self, transaction: Transaction) -> str:
@@ -40,23 +37,19 @@ class Tagger:
                 transaction.date.strftime("%Y-%m-%d")
                 if hasattr(transaction.date, "strftime")
                 else str(transaction.date),
-                transaction.account,
                 transaction.amount,
                 transaction.description,
             ),
             "",
         )
 
-    def set_tags(
-        self, amount: float, description: str, date: str, account: str, tags: str
-    ) -> None:
+    def set_tags(self, amount: float, description: str, date: str, tags: str) -> None:
         """Set tags for a transaction using raw data.
 
         Args:
             amount: Transaction amount
             description: Transaction description
             date: Transaction date (should be YYYY-MM-DD format)
-            account: Transaction account
             tags: Comma-separated tags (will be normalized to lowercase)
         """
         # Normalize tags to lowercase and strip whitespace
@@ -68,14 +61,10 @@ class Tagger:
             )
 
         if normalized:
-            self.tags[self.hash_transaction(date, account, amount, description)] = (
-                normalized
-            )
+            self.tags[self.hash_transaction(date, amount, description)] = normalized
         else:
             # Remove tag if empty
-            self.tags.pop(
-                self.hash_transaction(date, account, amount, description), None
-            )
+            self.tags.pop(self.hash_transaction(date, amount, description), None)
 
     def load_tags_from_csv(self, csv_path: str) -> None:
         """Load tags from a CSV file containing transaction data.
@@ -83,7 +72,7 @@ class Tagger:
         Args:
             csv_path: Path to the CSV file with transaction data and tags
 
-        The CSV file should have columns: date, account, amount, description, tag
+        The CSV file should have columns: date, amount, description, tag
         """
         if not os.path.exists(csv_path):
             return
@@ -91,7 +80,7 @@ class Tagger:
         try:
             df = pd.read_csv(csv_path)
             # Check if the file has the expected columns
-            required_cols = ["date", "account", "amount", "description", "tag"]
+            required_cols = ["date", "amount", "description", "tag"]
             missing_cols = [col for col in required_cols if col not in df.columns]
             if missing_cols:
                 print(
@@ -109,7 +98,6 @@ class Tagger:
                         amount=amount,
                         description=str(row["description"]),
                         date=str(row["date"]),
-                        account=str(row["account"]),
                         tags=tag_value,
                     )
                 except (ValueError, TypeError) as e:
@@ -150,7 +138,7 @@ class Tagger:
         - transaction.home_improvement = True
         - transaction.school = True
         """
-        for account, transaction in banker:
+        for _, transaction in banker:
             tags = self.get_tags(transaction)
             if tags:
                 # Set each tag as a separate attribute (replace spaces with underscores)
@@ -177,7 +165,7 @@ class Tagger:
 
         # Collect all transactions with tags into a DataFrame
         transactions_data = []
-        for account, transaction in banker:
+        for _, transaction in banker:
             # Collect all tag attributes from _extra_attributes
             tag_attrs = []
             if hasattr(transaction, "_extra_attributes"):
