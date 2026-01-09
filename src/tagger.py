@@ -7,7 +7,7 @@ import pandas as pd
 from transaction import Transaction
 
 
-class TagManager:
+class Tagger:
     """Manages transaction tags loaded from CSV files."""
 
     def __init__(self) -> None:
