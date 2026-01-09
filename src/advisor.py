@@ -17,8 +17,9 @@ class Advisor:
         # Load existing tags from transactions directory before loading new data
         self.tagger.load_existing_tags(self.banker)
 
-        # Direct the banker to load transactions for the specified date range
-        self.banker.read_account_transactions()
+        # Direct the banker to load transactions for the provided accounts
+        self.banker.load_account_transactions()
+
         if (
             sum(
                 len(account.transactions) for _, account in self.banker.accounts.items()
@@ -29,7 +30,7 @@ class Advisor:
             return
 
         # Apply tags to loaded transactions
-        self.tagger.apply_tags_to_transactions(self.banker)
+        self.tagger.apply_tags(self.banker)
 
         # self.report.note_header("TRANSFER REMOVAL")
         # self.banker.identify_returns()
@@ -92,7 +93,6 @@ class Advisor:
 
             transaction_data = {
                 "date": transaction.date,
-                "account": transaction.account,
                 "amount": transaction.amount,
                 "description": transaction.description,
             }

@@ -20,7 +20,7 @@ class Banker:
         self.transactions: pd.DataFrame = pd.DataFrame()
         self.log: List[str] = []
 
-    def read_account_transactions(self) -> None:
+    def load_account_transactions(self) -> None:
         for csv_path in self.discover_csvs(self.SOURCE_TRANSACTIONS_PATH):
             account = self.accounts.get(csv_path.name.replace(".csv", ""), None)
             if not account:
@@ -43,6 +43,7 @@ class Banker:
                 date=cast(datetime, row.date),
                 amount=cast(float, row.amount),
                 description=cast(str, row.description),
+                tags=cast(str, getattr(row, "tag", None)),
             )
 
         return transactions
@@ -55,7 +56,6 @@ class Banker:
     def __iter__(self) -> Iterator[Tuple[Account, Transaction]]:
         for _, account in self.accounts.items():
             for transaction in account.transactions.values():
-                transaction.account = account.name
                 yield account, transaction
 
     def get_transactions(
@@ -71,7 +71,6 @@ class Banker:
                         "amount": transaction.amount,
                         "description": transaction.description,
                         "account": transaction.account,
-                        "is_transfer": transaction.is_transfer,
                     }
                 )
 
