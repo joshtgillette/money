@@ -13,58 +13,22 @@ class Tagger:
     def __init__(self) -> None:
         self.tags: Dict[str, str] = {}  # hash -> comma-separated tags (lowercase)
 
-    def hash_transaction(self, date: str, amount: float, description: str) -> str:
-        """Generate a unique hash for a transaction.
-
-        Uses date, account, amount and description to create a consistent identifier.
+    def load_tags_from_directory(self, directory_path: str) -> None:
+        """Load tags from all CSV files in a directory.
 
         Args:
-            date: Transaction date (YYYY-MM-DD format string)
-            amount: Transaction amount
-            description: Transaction description
-
-        Returns:
-            SHA256 hash of the transaction data
+            directory_path: Path to the directory containing transaction CSV files
         """
-        return hashlib.sha256(
-            f"{pd.to_datetime(date).strftime('%Y-%m-%d')}|{amount}|{description}".encode()
-        ).hexdigest()
+        if not os.path.exists(directory_path):
+            return
 
-    def get_tags(self, transaction: Transaction) -> str:
-        """Get the tags for a transaction (empty string if none)."""
-        return self.tags.get(
-            self.hash_transaction(
-                transaction.date.strftime("%Y-%m-%d")
-                if hasattr(transaction.date, "strftime")
-                else str(transaction.date),
-                transaction.amount,
-                transaction.description,
-            ),
-            "",
-        )
+        # Iterate through all CSV files in the directory
+        for filename in os.listdir(directory_path):
+            if not filename.endswith(".csv"):
+                continue
 
-    def set_tags(self, amount: float, description: str, date: str, tags: str) -> None:
-        """Set tags for a transaction using raw data.
-
-        Args:
-            amount: Transaction amount
-            description: Transaction description
-            date: Transaction date (should be YYYY-MM-DD format)
-            tags: Comma-separated tags (will be normalized to lowercase)
-        """
-        # Normalize tags to lowercase and strip whitespace
-        if not tags.strip():
-            normalized = ""
-        else:
-            normalized = ",".join(
-                tag.strip().lower() for tag in tags.split(",") if tag.strip()
-            )
-
-        if normalized:
-            self.tags[self.hash_transaction(date, amount, description)] = normalized
-        else:
-            # Remove tag if empty
-            self.tags.pop(self.hash_transaction(date, amount, description), None)
+            filepath = os.path.join(directory_path, filename)
+            self.load_tags_from_csv(filepath)
 
     def load_tags_from_csv(self, csv_path: str) -> None:
         """Load tags from a CSV file containing transaction data.
@@ -110,22 +74,45 @@ class Tagger:
                 f"Warning: Could not load tags from {os.path.basename(csv_path)}: {e}"
             )
 
-    def load_tags_from_directory(self, directory_path: str) -> None:
-        """Load tags from all CSV files in a directory.
+    def set_tags(self, amount: float, description: str, date: str, tags: str) -> None:
+        """Set tags for a transaction using raw data.
 
         Args:
-            directory_path: Path to the directory containing transaction CSV files
+            amount: Transaction amount
+            description: Transaction description
+            date: Transaction date (should be YYYY-MM-DD format)
+            tags: Comma-separated tags (will be normalized to lowercase)
         """
-        if not os.path.exists(directory_path):
-            return
+        # Normalize tags to lowercase and strip whitespace
+        if not tags.strip():
+            normalized = ""
+        else:
+            normalized = ",".join(
+                tag.strip().lower() for tag in tags.split(",") if tag.strip()
+            )
 
-        # Iterate through all CSV files in the directory
-        for filename in os.listdir(directory_path):
-            if not filename.endswith(".csv"):
-                continue
+        if normalized:
+            self.tags[self.hash_transaction(date, amount, description)] = normalized
+        else:
+            # Remove tag if empty
+            self.tags.pop(self.hash_transaction(date, amount, description), None)
 
-            filepath = os.path.join(directory_path, filename)
-            self.load_tags_from_csv(filepath)
+    def hash_transaction(self, date: str, amount: float, description: str) -> str:
+        """Generate a unique hash for a transaction.
+
+        Uses date, account, amount and description to create a consistent identifier.
+
+        Args:
+            date: Transaction date (YYYY-MM-DD format string)
+            amount: Transaction amount
+            description: Transaction description
+
+        Returns:
+            SHA256 hash of the transaction data
+        """
+        return hashlib.sha256(
+            f"{pd.to_datetime(date).strftime('%Y-%m-%d')}|{amount}|{description}".encode()
+        ).hexdigest()
 
     def apply_tags_to_transactions(self, banker) -> None:
         """Apply loaded tags to transaction objects as separate attributes.
@@ -148,6 +135,19 @@ class Tagger:
                         # Convert tag to valid attribute name (replace spaces with underscores)
                         attr_name = tag_clean.replace(" ", "_")
                         setattr(transaction, attr_name, True)
+
+    def get_tags(self, transaction: Transaction) -> str:
+        """Get the tags for a transaction (empty string if none)."""
+        return self.tags.get(
+            self.hash_transaction(
+                transaction.date.strftime("%Y-%m-%d")
+                if hasattr(transaction.date, "strftime")
+                else str(transaction.date),
+                transaction.amount,
+                transaction.description,
+            ),
+            "",
+        )
 
     def write_transactions_with_tags(self, banker, output_directory: str) -> None:
         """Write transactions to a directory with tags.
