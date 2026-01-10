@@ -15,6 +15,5 @@ wheels/
 # Project files
 source transactions/
 statements/
-report/
 transactions/
 tags.json

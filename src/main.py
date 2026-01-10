@@ -9,17 +9,4 @@ from accounts.banker import Banker
 from advisor import Advisor
 
 if __name__ == "__main__":
-    Advisor(
-        Banker(
-            SoFi("SoFi Checking"),
-            SoFi("SoFi Savings"),
-            Apple("Apple Savings"),
-            PNC("PNC Checking"),
-            PNC("PNC Savings"),
-            ESL("ESL Checking"),
-            ESL("ESL Savings"),
-            AppleCredit("Apple Card"),
-            WellsFargo("Wells Fargo Credit Card"),
-            Chase("Chase Credit Card"),
-        )
-    ).start()
+    Advisor().advise()

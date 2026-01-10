@@ -1,6 +1,6 @@
 from abc import ABC
 from pathlib import Path
-from typing import Callable, Dict, Optional, cast
+from typing import Callable, Dict, Optional
 
 import pandas as pd
 
