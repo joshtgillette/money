@@ -7,7 +7,7 @@ from accounts.adapters.bank.bank_account import BankAccount
 
 class SoFi(BankAccount):
     """Adapter for SoFi checking and savings accounts."""
-    
+
     def __init__(self, name: str) -> None:
         """Initialize SoFi account with data normalization functions."""
         super().__init__(name)

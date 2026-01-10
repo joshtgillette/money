@@ -7,7 +7,7 @@ from accounts.adapters.bank.bank_account import BankAccount
 
 class PNC(BankAccount):
     """Adapter for PNC checking and savings accounts."""
-    
+
     def __init__(self, name: str) -> None:
         """Initialize PNC account with data normalization functions."""
         super().__init__(name)

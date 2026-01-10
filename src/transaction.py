@@ -2,14 +2,13 @@ import hashlib
 from datetime import datetime
 from typing import Any, Dict
 
-import pandas as pd
-
 
 class Transaction:
     """Represents a financial transaction with tagging capabilities."""
-    
+
     __slots__ = (
         "index",
+        "account_name",
         "date",
         "amount",
         "description",
@@ -20,6 +19,7 @@ class Transaction:
     def __init__(
         self,
         index: int,
+        account_name: str,
         date: datetime,
         amount: float,
         description: str,
@@ -27,6 +27,7 @@ class Transaction:
     ) -> None:
         """Initialize a transaction with core financial data and optional tags."""
         self.index: int = index
+        self.account_name: str = account_name
         self.date: datetime = date
         self.amount: float = amount
         self.description: str = description
@@ -35,9 +36,6 @@ class Transaction:
 
     def set_tags(self, tags: str) -> None:
         """Parse and store tags from a pipe-separated string."""
-        if not tags or pd.isna(tags):
-            return
-
         for tag in tags.split("|"):
             tag = tag.strip().replace(" ", "_")
             if not tag:
@@ -63,22 +61,23 @@ class Transaction:
 
     def hash(self) -> str:
         """Generate a unique hash identifier for this transaction.
-        
+
         Returns:
             SHA256 hash of the transaction's date, amount, and description
         """
         return hashlib.sha256(
-            f"{pd.to_datetime(self.date).strftime('%Y-%m-%d')}|{self.amount}|{self.description}".encode()
+            f"{self.account_name}{self.date.strftime('%Y-%m-%d')}{self.amount}{self.description}".encode()
         ).hexdigest()
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert transaction to a dictionary suitable for DataFrame creation.
-        
+
         Returns:
             Dictionary containing transaction data with tag information
         """
 
         return {
+            "account": self.account_name,
             "date": self.date,
             "amount": self.amount,
             "description": self.description,

@@ -16,7 +16,7 @@ from tagger import Tagger
 
 class Advisor:
     """Orchestrates loading, tagging, and organizing financial transactions."""
-    
+
     SOURCE_TRANSACTIONS_PATH: Path = Path("source transactions")
     PROCESSED_TRANSACTIONS_PATH: Path = Path("transactions")
     TAGGING_PATH: Path = PROCESSED_TRANSACTIONS_PATH / "months"
@@ -68,7 +68,7 @@ class Advisor:
             all_transactions, self.PROCESSED_TRANSACTIONS_PATH / "months", by_month=True
         )
 
-        # Write transactions by month
+        # Write transactions by account
         for account_name, account in self.banker.accounts.items():
             if account.transactions:
                 self.banker.write_transactions(
@@ -76,6 +76,7 @@ class Advisor:
                     self.PROCESSED_TRANSACTIONS_PATH
                     / "accounts"
                     / account_name.lower(),
+                    ["date", "amount", "description", "tags"],
                 )
 
         # Write transactions by tag

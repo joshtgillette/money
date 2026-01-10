@@ -11,7 +11,7 @@ from transaction import Transaction
 
 class Account(ABC):
     """Abstract base class for financial accounts with transaction normalization."""
-    
+
     def __init__(self, name: str) -> None:
         """Initialize an account with a name and empty transaction storage."""
         self.name: str = name
@@ -36,6 +36,7 @@ class Account(ABC):
     def normalize_source_transactions(self) -> pd.DataFrame:
         """Apply account-specific normalizers to transform source data into standard format."""
         return self.source_transactions.assign(
+            account=self.name,
             date=self.date_normalizer,
             amount=self.amount_normalizer,
             description=self.description_normalizer,
