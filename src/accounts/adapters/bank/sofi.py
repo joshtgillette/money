@@ -1,45 +1,16 @@
+"""SoFi bank account adapter."""
+
 import pandas as pd
 
 from accounts.adapters.bank.bank_account import BankAccount
-from transaction import Transaction
 
 
 class SoFi(BankAccount):
+    """Adapter for SoFi checking and savings accounts."""
+    
     def __init__(self, name: str) -> None:
+        """Initialize SoFi account with data normalization functions."""
         super().__init__(name)
-        self.raw_transactions: pd.DataFrame = pd.DataFrame()
-
-    def normalize(self) -> None:
-        """Convert SoFi's CSV format to standard transaction format."""
-        if self.raw_transactions.empty:
-            return
-
-        # Ignore Vault transactions, as they are one-sided transfers despite being
-        # a zero-sum transfer with respect to the account. Should this be a category?
-        self._build_transactions_from_dataframe(
-            pd.DataFrame(
-                {
-                    "date": pd.to_datetime(self.raw_transactions["Date"]),
-                    "amount": pd.to_numeric(self.raw_transactions["Amount"]),
-                    "description": self.raw_transactions["Description"],
-                }
-            )
-            .sort_values("date")
-            .reset_index(drop=True)
-            .pipe(lambda df: df[~df["description"].str.contains("Vault")])
-            .reset_index(drop=True)
-        )
-
-    def is_transaction_income(self, transaction: Transaction) -> bool:
-        """Determine if a normalized transaction is income."""
-        return (
-            super().is_transaction_income(transaction)
-            and "COMCAST (CC) OF" in transaction.description
-        )
-
-    def is_transaction_interest(self, transaction: Transaction) -> bool:
-        """Determine if a normalized transaction is interest income."""
-        return (
-            super().is_transaction_interest(transaction)
-            and "Interest earned" in transaction.description
-        )
+        self.date_normalizer = lambda df: pd.to_datetime(df["Date"])
+        self.amount_normalizer = lambda df: pd.to_numeric(df["Amount"])
+        self.description_normalizer = lambda df: df["Description"]

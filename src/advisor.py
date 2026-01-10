@@ -1,75 +1,90 @@
-from typing import List
+"""Personal finance advisor that orchestrates transaction loading, tagging, and reporting."""
 
-import pandas as pd
+import shutil
+from pathlib import Path
 
+from accounts.adapters.bank.apple import Apple
+from accounts.adapters.bank.esl import ESL
+from accounts.adapters.bank.pnc import PNC
+from accounts.adapters.bank.sofi import SoFi
+from accounts.adapters.credit.apple import Apple as AppleCredit
+from accounts.adapters.credit.chase import Chase
+from accounts.adapters.credit.wells_fargo import WellsFargo
 from accounts.banker import Banker
-from report import Report
-from tracking.categories.transfer import Transfer
-from tracking.category import Category
+from tagger import Tagger
 
 
 class Advisor:
-    def __init__(self, banker: Banker, categories: List[Category]) -> None:
-        self.banker: Banker = banker
-        self.categories: List[Category] = categories
-        self.report: Report = Report()
+    """Orchestrates loading, tagging, and organizing financial transactions."""
+    
+    SOURCE_TRANSACTIONS_PATH: Path = Path("source transactions")
+    PROCESSED_TRANSACTIONS_PATH: Path = Path("transactions")
+    TAGGING_PATH: Path = PROCESSED_TRANSACTIONS_PATH / "months"
 
-    def start(self) -> None:
-        # Direct the banker to load transactions for the specified date range
-        self.banker.load()
-        if sum(len(account.transactions) for account in self.banker.accounts) == 0:
-            self.report.note("No transactions loaded.")
+    def __init__(self) -> None:
+        """Initialize the advisor with supported bank accounts and tagging system."""
+        self.banker: Banker = Banker(
+            SoFi("SoFi Checking"),
+            SoFi("SoFi Savings"),
+            Apple("Apple Savings"),
+            PNC("PNC Checking"),
+            PNC("PNC Savings"),
+            ESL("ESL Checking"),
+            ESL("ESL Savings"),
+            AppleCredit("Apple Card"),
+            WellsFargo("Wells Fargo Credit Card"),
+            Chase("Chase Credit Card"),
+        )
+        self.tagger: Tagger = Tagger(self.banker)
+
+    def advise(self) -> None:
+        """Load transactions, apply tags, and generate organized transaction reports."""
+        self.tagger.load_existing_tags(self.TAGGING_PATH)
+
+        # Direct the banker to load transactions for the provided accounts
+        self.banker.load_account_transactions(self.SOURCE_TRANSACTIONS_PATH)
+        all_transactions = self.banker.filter_transactions()
+
+        if len(all_transactions) == 0:
+            print("no transactions loaded.")
             return
-
-        # Remove transfers if the transfer category exists
-        if "transfer" in [category.label for category in self.categories]:
-            self.report.note_header("TRANSFER REMOVAL")
-            self.banker.identify_returns()
-            self.banker.identify_transfers()
-            self.report.note(self.banker.get_log())
-
-        # Write transactions data to the report
-        transactions: pd.DataFrame = self.banker.get_transactions()
-        self.report.write_transactions(transactions, "all")
-        non_transfer_transactions: pd.DataFrame = self.banker.get_transactions(
-            lambda t: not t.is_transfer
-        )
-        self.report.write_transactions(non_transfer_transactions, "all - no transfers")
-        self.report.note(
-            f"loaded {len(self.banker.accounts)} bank accounts "
-            f"with {len(transactions)} total transactions, "
-            f"{len(non_transfer_transactions)} non-transfers\n"
-        )
-
-        # Apply each category's filter and write categorized transactions to the report
-        self.report.note_header("CATEGORY TRACKING")
-        for category in self.categories:
-            category.apply_filter(self.banker)
-            transactions = self.banker.get_transactions(
-                lambda t: getattr(t, category.label),
-                lambda t: not t.is_transfer
-                if not isinstance(category, Transfer)
-                else True,
+        else:
+            print(
+                f"loaded {len(self.banker.accounts)} bank accounts "
+                f"with {len(all_transactions)} total transactions"
             )
-            self.report.note(
-                f"categorized {len(transactions)} transactions as {category.label} "
-                f"totaling ${transactions['amount'].sum():,.2f}"
-            )
-            self.report.write_transactions(transactions, f"categories/{category.label}")
-        self.report.write_transactions(
-            self.banker.get_transactions(
-                lambda t: not any(
-                    getattr(t, category.label) for category in self.categories
-                )
-            ),
-            "uncategorized",
+
+        # Apply tags to loaded transactions
+        self.tagger.apply_tags()
+
+        # Wipe processed transactions for fresh write
+        shutil.rmtree(self.PROCESSED_TRANSACTIONS_PATH, ignore_errors=True)
+
+        # Write transactions as a whole and by month
+        self.banker.write_transactions(
+            all_transactions, self.PROCESSED_TRANSACTIONS_PATH / "all"
+        )
+        self.banker.write_transactions(
+            all_transactions, self.PROCESSED_TRANSACTIONS_PATH / "months", by_month=True
         )
 
-        # Write account transactions - pass transaction lists directly
-        for account in self.banker.accounts:
+        # Write transactions by month
+        for account_name, account in self.banker.accounts.items():
             if account.transactions:
-                self.report.write_transactions(
-                    account.transactions.values(),
-                    f"accounts/{account.name.lower()}",
-                    columns=["date", "amount", "description"],
+                self.banker.write_transactions(
+                    list(account.transactions.values()),
+                    self.PROCESSED_TRANSACTIONS_PATH
+                    / "accounts"
+                    / account_name.lower(),
                 )
+
+        # Write transactions by tag
+        [
+            self.banker.write_transactions(
+                self.banker.filter_transactions(
+                    lambda t: getattr(t, tag.replace(" ", "_"), False)
+                ),
+                self.PROCESSED_TRANSACTIONS_PATH / self.tagger.TAGS_PATH / tag,
+            )
+            for tag in self.tagger.get_all_tags()
+        ]

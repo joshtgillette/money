@@ -13,6 +13,7 @@ wheels/
 .venv
 
 # Project files
-transactions/
+source transactions/
 statements/
-report/
+transactions/
+tags.json

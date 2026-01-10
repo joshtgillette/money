@@ -1,6 +1,10 @@
+"""Manages multiple bank accounts and provides transaction operations."""
+
 import os
+from datetime import datetime
 from difflib import SequenceMatcher
-from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
+from pathlib import Path
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, cast
 
 import pandas as pd
 
@@ -10,55 +14,93 @@ from transaction import Transaction
 
 
 class Banker:
-    TRANSACTIONS_PATH: str = "transactions"
-
+    """Manages financial accounts and provides operations for transaction handling."""
+    
     def __init__(self, *accounts: Account) -> None:
-        self.accounts: List[Account] = list(accounts)
-        self.transactions: pd.DataFrame = pd.DataFrame()
-        self.log: List[str] = []
-
-    def load(self) -> None:
-        name_account_mapping: Dict[str, Account] = {
-            account.name.lower(): account for account in self.accounts
+        """Initialize the banker with a collection of financial accounts."""
+        self.accounts: Dict[str, Account] = {
+            account.name.lower(): account for account in accounts
         }
-        for root, _, files in os.walk(self.TRANSACTIONS_PATH):
-            for file in files:
-                if not file.endswith(".csv"):
-                    continue
 
-                key: str = file[:-4].lower()
-                if key in name_account_mapping:
-                    name_account_mapping[key].load_transactions(
-                        os.path.join(root, file)
-                    )
+    def load_account_transactions(self, source_transactions_path: Path) -> None:
+        """Load and normalize transactions from source CSV files for all accounts."""
+        for csv_path in self.discover_csvs(source_transactions_path):
+            account = self.accounts.get(csv_path.name.replace(".csv", ""), None)
+            if not account:
+                continue
 
-        for account in self.accounts:
-            account.normalize()
+            account.add_source_transactions(csv_path)
+
+        # Normalize source transactions to a common format and load
+        for _, account in self.accounts.items():
+            account.transactions = self.load_transactions(
+                account.normalize_source_transactions()
+            )
+
+    @staticmethod
+    def discover_csvs(path: Path) -> List[Path]:
+        """Recursively discover all CSV files in the given path."""
+        return list(path.rglob("*.csv"))
+
+    @staticmethod
+    def load_transactions(transactions_data: pd.DataFrame) -> Dict[int, Transaction]:
+        """Parse transaction data from a DataFrame into Transaction objects."""
+        transactions: Dict[int, Transaction] = {}
+        for row in transactions_data.itertuples():
+            index = cast(int, row.Index)
+            transactions[index] = Transaction(
+                index=index,
+                date=cast(datetime, row.date),
+                amount=cast(float, row.amount),
+                description=cast(str, row.description),
+                tags=cast(str, getattr(row, "tags", None)),
+            )
+
+        return transactions
 
     def __iter__(self) -> Iterator[Tuple[Account, Transaction]]:
-        for account in self.accounts:
+        for _, account in self.accounts.items():
             for transaction in account.transactions.values():
-                transaction.account = account.name
                 yield account, transaction
 
-    def get_transactions(
+    def filter_transactions(
         self, *predicates: Callable[[Transaction], bool]
-    ) -> pd.DataFrame:
-        # Collect transactions based on predicates and build DataFrame
-        transactions_data: List[Dict[str, Any]] = []
-        for account, transaction in self:
-            if not predicates or all(pred(transaction) for pred in predicates):
-                transactions_data.append(
-                    {
-                        "date": transaction.date,
-                        "amount": transaction.amount,
-                        "description": transaction.description,
-                        "account": transaction.account,
-                        "is_transfer": transaction.is_transfer,
-                    }
-                )
+    ) -> List[Transaction]:
+        """Filter transactions across all accounts using provided predicate functions."""
+        return [
+            transaction
+            for _, transaction in self
+            if not predicates or all(pred(transaction) for pred in predicates)
+        ]
 
-        return pd.DataFrame(transactions_data)
+    def write_transactions(
+        self,
+        transactions: List[Transaction],
+        path: Path,
+        columns: List[str] = ["date", "amount", "description", "tags"],
+        by_month: bool = False,
+    ) -> None:
+        """Write transactions to CSV files, optionally grouped by month."""
+        transaction_data = pd.DataFrame(
+            [transaction.to_dict() for transaction in transactions]
+        )
+        if not by_month:
+            # Write all transactions
+            path = path.with_suffix(".csv")
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            transaction_data.to_csv(path, columns=columns, index=False)
+            return
+
+        # Write transactions by month
+        for month, group in transaction_data.groupby(
+            transaction_data["date"].dt.to_period("M")
+        ):
+            monthly_path = path / f"{pd.Period(month).strftime('%m%y')}.csv"
+            os.makedirs(os.path.dirname(monthly_path), exist_ok=True)
+            group.to_csv(
+                monthly_path,
+                index=False,
+            )
 
     def identify_transfers(self) -> None:
         """
@@ -209,12 +251,12 @@ class Banker:
                             receiving_description, receiving_transaction.description
                         )
                     ):
-                        self.log.append(
+                        print(
                             f"transaction of {self.format_amount(sending_transaction.amount)} from "
                             f"{sending_account.name} to {receiving_account.name} ({sending_transaction.description}) "
                             "is transfer"
                         )
-                        self.log.append(
+                        print(
                             f"transaction of {self.format_amount(receiving_transaction.amount)} from "
                             f"{receiving_account.name} to {sending_account.name} ({receiving_transaction.description}) "
                             "is transfer"
@@ -226,17 +268,13 @@ class Banker:
             if not transfers_in_pass:
                 break
             passes_ran += 1
-            self.log.append(
-                f"{transfers_in_pass} transfers identified in pass {passes_ran}\n"
-            )
+            print(f"{transfers_in_pass} transfers identified in pass {passes_ran}\n")
             transfers_in_pass = 0
 
     def find_counter_transactions(
         self, account: Account, transaction: Transaction
     ) -> List[Tuple[Account, Transaction]]:
-        """Find counter-transactions for a given transaction."""
-
-        # A counter transaction is a valid counter-priced transaction in another account, not a guaranteed transfer
+        """Find potential matching transactions that could represent transfers."""
         return [
             (a, t)
             for a, t in self
@@ -252,11 +290,13 @@ class Banker:
     def equate_transaction_descriptions(
         self, d1: Optional[str], d2: str, threshold: float = 0.90
     ) -> bool:
+        """Compare two transaction descriptions for similarity above a threshold."""
         if d1 is None:
             return False
         return SequenceMatcher(None, d1, d2).ratio() >= threshold
 
     def identify_returns(self) -> None:
+        """Identify and mark product returns or refunds within accounts."""
         for account, transaction in self:
             if transaction.is_transfer or not account.is_return_candidate(transaction):
                 continue
@@ -267,12 +307,12 @@ class Banker:
             if original_transaction is None:
                 continue
 
-            self.log.append(
+            print(
                 f"transaction of {self.format_amount(transaction.amount)} from "
                 f"{account.name} ({transaction.description}) "
                 "is return"
             )
-            self.log.append(
+            print(
                 f"transaction of {self.format_amount(original_transaction.amount)} from "
                 f"{account.name} ({original_transaction.description}) "
                 "is returned"
@@ -283,18 +323,24 @@ class Banker:
     def set_transfer(
         self, account: Account, transaction_index: int, value: bool = True
     ) -> None:
+        """Mark a transaction as a transfer or not."""
         if transaction_index in account.transactions:
             account.transactions[transaction_index].is_transfer = value
 
     def is_transfer(self, account: Account, transaction_index: int) -> bool:
+        """Check if a transaction is marked as a transfer."""
         if transaction_index in account.transactions:
             return account.transactions[transaction_index].is_transfer
         return False
 
     def format_amount(self, amount: float) -> str:
+        """Format a transaction amount as a currency string with sign."""
         return f"-${abs(amount):.2f}" if amount < 0 else f"${abs(amount):.2f}"
 
     def get_log(self) -> str:
+        """Retrieve and clear the accumulated log messages."""
         log_string: str = "\n".join(self.log)
+        self.log = []
+        return log_string
         self.log = []
         return log_string

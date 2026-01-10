@@ -1,27 +1,16 @@
+"""Chase credit card adapter."""
+
 import pandas as pd
 
 from accounts.adapters.credit.credit_card import CreditCard
 
 
 class Chase(CreditCard):
+    """Adapter for Chase credit card accounts."""
+    
     def __init__(self, name: str) -> None:
+        """Initialize Chase account with data normalization functions."""
         super().__init__(name)
-
-    def normalize(self) -> None:
-        """Convert Chase's CSV format to standard transaction format."""
-        if self.raw_transactions.empty:
-            return
-
-        self._build_transactions_from_dataframe(
-            pd.DataFrame(
-                {
-                    "date": pd.to_datetime(self.raw_transactions["Transaction Date"]),
-                    "amount": pd.to_numeric(
-                        pd.to_numeric(self.raw_transactions["Amount"])
-                    ),
-                    "description": self.raw_transactions["Description"],
-                }
-            )
-            .sort_values("date")
-            .reset_index(drop=True)
-        )
+        self.date_normalizer = lambda df: pd.to_datetime(df["Transaction Date"])
+        self.amount_normalizer = lambda df: pd.to_numeric(df["Amount"])
+        self.description_normalizer = lambda df: df["Description"]

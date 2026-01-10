@@ -1,6 +1,8 @@
-from abc import ABC, abstractmethod
-from datetime import datetime
-from typing import Dict, Optional, cast
+"""Base account class for financial institutions."""
+
+from abc import ABC
+from pathlib import Path
+from typing import Callable, Dict, Optional
 
 import pandas as pd
 
@@ -8,50 +10,39 @@ from transaction import Transaction
 
 
 class Account(ABC):
+    """Abstract base class for financial accounts with transaction normalization."""
+    
     def __init__(self, name: str) -> None:
+        """Initialize an account with a name and empty transaction storage."""
         self.name: str = name
-        self.raw_transactions: pd.DataFrame = pd.DataFrame()
-        self.transactions: Dict[
-            int, Transaction
-        ] = {}  # Map index to Transaction objects
+
+        self.source_transactions: pd.DataFrame = pd.DataFrame()
         self.header_val: int | None = 0
 
-    def load_transactions(self, path: str) -> None:
-        """Load transactions from a specific CSV file into a pandas DataFrame."""
+        self.date_normalizer: Callable[[pd.DataFrame], pd.Series]
+        self.amount_normalizer: Callable[[pd.DataFrame], pd.Series]
+        self.description_normalizer: Callable[[pd.DataFrame], pd.Series]
 
-        self.raw_transactions = pd.concat(
-            [self.raw_transactions, pd.read_csv(path, header=self.header_val)],
+        self.transactions: Dict[int, Transaction] = {}
+
+    def add_source_transactions(self, csv_path: Path) -> None:
+        """Load and concatenate transactions from a CSV file."""
+
+        self.source_transactions = pd.concat(
+            [self.source_transactions, pd.read_csv(csv_path, header=self.header_val)],
             ignore_index=True,
         )
 
-    @abstractmethod
-    def normalize(self) -> None:
-        """Normalize raw transaction data to standard format.
-
-        This method must be implemented by each account adapter
-        to handle their unique CSV format and transform it into
-        Transaction objects stored in self.transactions dict.
-        """
-        pass
-
-    def _build_transactions_from_dataframe(self, df: pd.DataFrame) -> None:
-        """Helper method to build transactions dict from a normalized DataFrame.
-
-        The DataFrame should have columns: date, amount, description, and optionally is_transfer.
-        """
-        self.transactions = {}
-        has_is_transfer: bool = "is_transfer" in df.columns
-        for row in df.itertuples():
-            transaction: Transaction = Transaction(
-                date=cast(datetime, row.date),
-                amount=cast(float, row.amount),
-                description=cast(str, row.description),
-                index=cast(int, row.Index),
-                is_transfer=cast(bool, row.is_transfer) if has_is_transfer else False,
-            )
-            self.transactions[cast(int, row.Index)] = transaction
+    def normalize_source_transactions(self) -> pd.DataFrame:
+        """Apply account-specific normalizers to transform source data into standard format."""
+        return self.source_transactions.assign(
+            date=self.date_normalizer,
+            amount=self.amount_normalizer,
+            description=self.description_normalizer,
+        )
 
     def is_return_candidate(self, transaction: Transaction) -> bool:
+        """Determine if a transaction could be a return or refund."""
         return (
             transaction.amount > 0
             or (self.__class__.__name__ == "CreditCard" or transaction.amount < 0)
@@ -60,6 +51,7 @@ class Account(ABC):
     def find_counter_return(
         self, return_transaction: Transaction
     ) -> Optional[Transaction]:
+        """Find the original transaction that this return is refunding."""
         for transaction in self.transactions.values():
             if (
                 not transaction.is_transfer
