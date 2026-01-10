@@ -33,7 +33,7 @@ class Transaction:
     def set_tags(self, tags):
         if tags and pd.notna(tags):
             for tag in tags.split("|"):
-                tag = tag.strip()
+                tag = tag.strip().replace(" ", "_")
                 if not tag:
                     continue
 
@@ -57,7 +57,7 @@ class Transaction:
             del self._tags[name]
 
     def get_tags(self) -> str:
-        return "|".join(self._tags)
+        return "|".join([tag.replace("_", " ") for tag in self._tags])
 
     def hash(self) -> str:
         """Generate a unique hash of a transaction.
