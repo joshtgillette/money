@@ -69,5 +69,21 @@ class Transaction:
             f"{pd.to_datetime(self.date).strftime('%Y-%m-%d')}|{self.amount}|{self.description}".encode()
         ).hexdigest()
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert transaction to dictionary for DataFrame creation.
+
+        Returns:
+            Dictionary with core attributes and tag columns.
+        """
+
+        data = {
+            "date": self.date,
+            "amount": self.amount,
+            "description": self.description,
+            "tags": self.get_tags(),
+        }
+
+        return data
+
     def __repr__(self) -> str:
         return f"{self.amount} on {self.date} - {self.description}"

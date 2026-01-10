@@ -28,29 +28,16 @@ class Report:
 
     def write_transactions(
         self,
-        transactions: Union[pd.DataFrame, Iterable[Transaction]],
+        transactions: List[Transaction],
         path: str,
-        columns: List[str] = ["date", "account", "amount", "description"],
+        columns: List[str] = ["date", "amount", "description", "tags"],
     ) -> None:
-        # Convert transaction list to DataFrame if needed
-        if not isinstance(transactions, pd.DataFrame):
-            # Assume it's an iterable of Transaction objects
-            transactions = pd.DataFrame(
-                [
-                    {
-                        "date": txn.date,
-                        "amount": txn.amount,
-                        "description": txn.description,
-                        "account": getattr(txn, "account", None),
-                    }
-                    for txn in transactions
-                ]
-            )
-
-        transactions = transactions.sort_values("date").reset_index(drop=True)
+        transaction_data = pd.DataFrame(
+            [transaction.to_dict() for transaction in transactions]
+        )
 
         full_path: str = f"{self.DATA_PATH}/{path}.csv"
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
 
         # Write full transactions
-        transactions.to_csv(full_path, columns=columns, index=False)
+        transaction_data.to_csv(full_path, columns=columns, index=False)

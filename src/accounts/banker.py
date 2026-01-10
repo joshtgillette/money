@@ -57,23 +57,15 @@ class Banker:
             for transaction in account.transactions.values():
                 yield account, transaction
 
-    def get_transactions(
+    def filter_transactions(
         self, *predicates: Callable[[Transaction], bool]
-    ) -> pd.DataFrame:
-        # Collect transactions based on predicates and build DataFrame
-        transactions_data: List[Dict[str, Any]] = []
-        for account, transaction in self:
-            if not predicates or all(pred(transaction) for pred in predicates):
-                transactions_data.append(
-                    {
-                        "date": transaction.date,
-                        "amount": transaction.amount,
-                        "description": transaction.description,
-                        "account": transaction.account,
-                    }
-                )
-
-        return pd.DataFrame(transactions_data)
+    ) -> List[Transaction]:
+        # Collect transactions based on predicates
+        return [
+            transaction
+            for _, transaction in self
+            if not predicates or all(pred(transaction) for pred in predicates)
+        ]
 
     def identify_transfers(self) -> None:
         """

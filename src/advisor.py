@@ -36,7 +36,7 @@ class Advisor:
         # self.report.note(self.banker.get_log())
 
         # Write transactions data to the report
-        transactions: pd.DataFrame = self.banker.get_transactions()
+        transactions = self.banker.filter_transactions()
         self.report.write_transactions(transactions, "all")
         # non_transfer_transactions: pd.DataFrame = self.banker.get_transactions(
         #     lambda t: not t.is_transfer
@@ -61,18 +61,18 @@ class Advisor:
         self.tagger.write_transactions_with_tags(self.banker)
 
         # Write monthly transactions to report
-        for month, group in transactions.groupby(
-            transactions["date"].dt.to_period("M")
-        ):
-            self.report.write_transactions(
-                group,
-                f"monthly/{pd.Period(month).strftime('%m%y')}.csv",
-            )
+        # for month, group in transactions.groupby(
+        #     transactions["date"].dt.to_period("M")
+        # ):
+        #     self.report.write_transactions(
+        #         group,
+        #         f"monthly/{pd.Period(month).strftime('%m%y')}",
+        #     )
 
         # Write tagged transactions to report
         [
             self.report.write_transactions(
-                self.banker.get_transactions(
+                self.banker.filter_transactions(
                     lambda t: getattr(t, tag.replace(" ", "_"), False)
                 ),
                 f"tags/{tag}",
