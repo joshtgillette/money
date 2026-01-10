@@ -48,12 +48,14 @@ class Banker:
         transactions: Dict[int, Transaction] = {}
         for row in transactions_data.itertuples():
             index = cast(int, row.Index)
+            tags = getattr(row, "tags", None)
             transactions[index] = Transaction(
                 index=index,
-                date=cast(datetime, row.date),
+                account_name=cast(str, row.account),
+                date=pd.to_datetime(row.date),  # type: ignore[call-overload]
                 amount=cast(float, row.amount),
                 description=cast(str, row.description),
-                tags=cast(str, getattr(row, "tags", None)),
+                tags=cast(str, tags) if pd.notna(tags) else "",
             )
 
         return transactions
@@ -77,13 +79,13 @@ class Banker:
         self,
         transactions: List[Transaction],
         path: Path,
-        columns: List[str] = ["date", "amount", "description", "tags"],
+        columns: List[str] = ["account", "date", "amount", "description", "tags"],
         by_month: bool = False,
     ) -> None:
         """Write transactions to CSV files, optionally grouped by month."""
         transaction_data = pd.DataFrame(
             [transaction.to_dict() for transaction in transactions]
-        )
+        ).sort_values("date")
         if not by_month:
             # Write all transactions
             path = path.with_suffix(".csv")
@@ -99,6 +101,7 @@ class Banker:
             os.makedirs(os.path.dirname(monthly_path), exist_ok=True)
             group.to_csv(
                 monthly_path,
+                columns=columns,
                 index=False,
             )
 

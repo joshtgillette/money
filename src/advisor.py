@@ -68,7 +68,7 @@ class Advisor:
             all_transactions, self.PROCESSED_TRANSACTIONS_PATH / "months", by_month=True
         )
 
-        # Write transactions by month
+        # Write transactions by account
         for account_name, account in self.banker.accounts.items():
             if account.transactions:
                 self.banker.write_transactions(
@@ -76,6 +76,7 @@ class Advisor:
                     self.PROCESSED_TRANSACTIONS_PATH
                     / "accounts"
                     / account_name.lower(),
+                    ["date", "amount", "description", "tags"],
                 )
 
         # Write transactions by tag
