@@ -103,10 +103,18 @@ class Banker:
             )
 
     def identify_transfers(self) -> None:
-        """Identify and mark internal transfers between accounts.
-        
-        Uses a two-phase approach to build confidence in transfer identification
-        based on matching amounts, dates, and description patterns.
+        """
+        Identify internal transfers between bank accounts. Identification is dependent on relating a candidate
+        transfer's sending and receiving account to the transfer and counter-transfer's descriptions along with
+        a confidence value indicating the frequency of transfer's with the same descriptions between the accounts.
+
+        phase 1: build the account-transfer-description (ATD) confidence directory that relates a potential
+                 transfer's sending and receiving account by the transactions' descriptions.
+            1. For each transaction, find a sole counter transaction indicating a transfer
+            2. Link the sending and receiving accounts by the transfer's description pair with a confidence value
+        phase 2: identify transactions with accounts and descriptions in the ATD confidence mapping that have both the highest confidence value.
+
+        repeat these phases until transfers are no longer identified
         """
 
         atd_confidence: Dict[
