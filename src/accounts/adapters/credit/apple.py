@@ -7,7 +7,7 @@ from accounts.adapters.credit.credit_card import CreditCard
 
 class Apple(CreditCard):
     """Adapter for Apple Card credit card accounts."""
-    
+
     def __init__(self, name: str) -> None:
         """Initialize Apple Card account with data normalization functions."""
         super().__init__(name)

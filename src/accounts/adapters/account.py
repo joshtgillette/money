@@ -11,7 +11,7 @@ from transaction import Transaction
 
 class Account(ABC):
     """Abstract base class for financial accounts with transaction normalization."""
-    
+
     def __init__(self, name: str) -> None:
         """Initialize an account with a name and empty transaction storage."""
         self.name: str = name

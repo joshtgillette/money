@@ -9,7 +9,7 @@ from accounts.adapters.bank.bank_account import BankAccount
 
 class Apple(BankAccount):
     """Adapter for Apple Savings accounts."""
-    
+
     def __init__(self, name: str) -> None:
         """Initialize Apple account with data normalization functions."""
         super().__init__(name)

@@ -7,7 +7,7 @@ from accounts.adapters.credit.credit_card import CreditCard
 
 class Chase(CreditCard):
     """Adapter for Chase credit card accounts."""
-    
+
     def __init__(self, name: str) -> None:
         """Initialize Chase account with data normalization functions."""
         super().__init__(name)

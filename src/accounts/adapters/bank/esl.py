@@ -7,7 +7,7 @@ from accounts.adapters.bank.bank_account import BankAccount
 
 class ESL(BankAccount):
     """Adapter for ESL checking and savings accounts."""
-    
+
     def __init__(self, name: str) -> None:
         """Initialize ESL account with data normalization functions."""
         super().__init__(name)

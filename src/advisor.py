@@ -16,7 +16,7 @@ from tagger import Tagger
 
 class Advisor:
     """Orchestrates loading, tagging, and organizing financial transactions."""
-    
+
     SOURCE_TRANSACTIONS_PATH: Path = Path("source transactions")
     PROCESSED_TRANSACTIONS_PATH: Path = Path("transactions")
     TAGGING_PATH: Path = PROCESSED_TRANSACTIONS_PATH / "months"

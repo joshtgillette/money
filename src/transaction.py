@@ -7,7 +7,7 @@ import pandas as pd
 
 class Transaction:
     """Represents a financial transaction with tagging capabilities."""
-    
+
     __slots__ = (
         "index",
         "date",
@@ -63,7 +63,7 @@ class Transaction:
 
     def hash(self) -> str:
         """Generate a unique hash identifier for this transaction.
-        
+
         Returns:
             SHA256 hash of the transaction's date, amount, and description
         """
@@ -73,7 +73,7 @@ class Transaction:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert transaction to a dictionary suitable for DataFrame creation.
-        
+
         Returns:
             Dictionary containing transaction data with tag information
         """

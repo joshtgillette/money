@@ -15,7 +15,7 @@ from transaction import Transaction
 
 class Banker:
     """Manages financial accounts and provides operations for transaction handling."""
-    
+
     def __init__(self, *accounts: Account) -> None:
         """Initialize the banker with a collection of financial accounts."""
         self.accounts: Dict[str, Account] = {

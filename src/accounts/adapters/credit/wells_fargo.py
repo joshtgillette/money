@@ -7,7 +7,7 @@ from accounts.adapters.credit.credit_card import CreditCard
 
 class WellsFargo(CreditCard):
     """Adapter for Wells Fargo credit card accounts."""
-    
+
     def __init__(self, name: str) -> None:
         """Initialize Wells Fargo account with data normalization functions."""
         super().__init__(name)
