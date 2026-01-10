@@ -30,7 +30,7 @@ class Tagger:
                 pd.read_csv(csv_path)
             )
             for _, transaction in transactions.items():
-                if not transaction._tags:
+                if not transaction.get_tags():
                     continue
 
                 self.tags[transaction.hash()] = transaction.get_tags()

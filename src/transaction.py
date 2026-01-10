@@ -31,13 +31,15 @@ class Transaction:
         self.set_tags(tags)
 
     def set_tags(self, tags):
-        if tags and pd.notna(tags):
-            for tag in tags.split("|"):
-                tag = tag.strip().replace(" ", "_")
-                if not tag:
-                    continue
+        if not tags or pd.isna(tags):
+            return
 
-                self._tags[tag] = True
+        for tag in tags.split("|"):
+            tag = tag.strip().replace(" ", "_")
+            if not tag:
+                continue
+
+            self._tags[tag] = True
 
     def __getattr__(self, name: str) -> Any:
         """Allow access to dynamically added attributes."""
@@ -49,12 +51,7 @@ class Transaction:
             super().__setattr__(name, value)
             return
 
-        if not hasattr(self, "_tags"):
-            super().__setattr__("_tags", {})
-        if value:
-            self._tags[name] = value
-        elif name in self._tags:
-            del self._tags[name]
+        self._tags[name] = value
 
     def get_tags(self) -> str:
         return "|".join([tag.replace("_", " ") for tag in self._tags])
@@ -76,14 +73,9 @@ class Transaction:
             Dictionary with core attributes and tag columns.
         """
 
-        data = {
+        return {
             "date": self.date,
             "amount": self.amount,
             "description": self.description,
             "tags": self.get_tags(),
         }
-
-        return data
-
-    def __repr__(self) -> str:
-        return f"{self.amount} on {self.date} - {self.description}"

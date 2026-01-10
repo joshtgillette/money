@@ -3,7 +3,6 @@ from typing import Callable
 import pandas as pd
 
 from accounts.adapters.bank.bank_account import BankAccount
-from transaction import Transaction
 
 
 class Apple(BankAccount):
@@ -16,17 +15,3 @@ class Apple(BankAccount):
             "Transaction Type"
         ].eq("Credit").map({True: 1, False: -1})
         self.description_normalizer: Callable = lambda df: df["Description"]
-
-    def is_transaction_income(self, transaction: Transaction) -> bool:
-        """Determine if a normalized transaction is income."""
-        return (
-            super().is_transaction_income(transaction)
-            and "ACH Transfer from COMCAST (CC) OF PAYROLL" in transaction.description
-        )
-
-    def is_transaction_interest(self, transaction: Transaction) -> bool:
-        """Determine if a normalized transaction is interest income."""
-        return (
-            super().is_transaction_interest(transaction)
-            and "Interest Paid" in transaction.description
-        )

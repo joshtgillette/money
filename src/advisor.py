@@ -83,6 +83,3 @@ class Advisor:
             )
             for tag in self.tagger.get_all_tags()
         ]
-
-    def build_transactions_path(self, path):
-        pass
