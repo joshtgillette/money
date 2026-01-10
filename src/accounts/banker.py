@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -11,17 +12,14 @@ from transaction import Transaction
 
 
 class Banker:
-    SOURCE_TRANSACTIONS_PATH: str = "source transactions"
-
     def __init__(self, *accounts: Account) -> None:
         self.accounts: Dict[str, Account] = {
             account.name.lower(): account for account in accounts
         }
-        self.log: List[str] = []
 
-    def load_account_transactions(self) -> None:
+    def load_account_transactions(self, source_transactions_path) -> None:
         # Read all available source transactions
-        for csv_path in self.discover_csvs(self.SOURCE_TRANSACTIONS_PATH):
+        for csv_path in self.discover_csvs(source_transactions_path):
             account = self.accounts.get(csv_path.name.replace(".csv", ""), None)
             if not account:
                 continue
@@ -35,9 +33,9 @@ class Banker:
             )
 
     @staticmethod
-    def discover_csvs(path: str) -> List[Path]:
+    def discover_csvs(path: Path) -> List[Path]:
         """Recursively discover all CSV files in the given path."""
-        return list(Path(path).rglob("*.csv"))
+        return list(path.rglob("*.csv"))
 
     @staticmethod
     def load_transactions(transactions_data: pd.DataFrame) -> Dict[int, Transaction]:
@@ -49,7 +47,7 @@ class Banker:
                 date=cast(datetime, row.date),
                 amount=cast(float, row.amount),
                 description=cast(str, row.description),
-                tags=cast(str, getattr(row, "tag", None)),
+                tags=cast(str, getattr(row, "tags", None)),
             )
 
         return transactions
@@ -68,6 +66,34 @@ class Banker:
             for _, transaction in self
             if not predicates or all(pred(transaction) for pred in predicates)
         ]
+
+    def write_transactions(
+        self,
+        transactions: List[Transaction],
+        path: Path,
+        columns: List[str] = ["date", "amount", "description", "tags"],
+        by_month: bool = False,
+    ) -> None:
+        transaction_data = pd.DataFrame(
+            [transaction.to_dict() for transaction in transactions]
+        )
+        if not by_month:
+            # Write all transactions
+            path = path.with_suffix(".csv")
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            transaction_data.to_csv(path, columns=columns, index=False)
+            return
+
+        # Write transactions by month
+        for month, group in transaction_data.groupby(
+            transaction_data["date"].dt.to_period("M")
+        ):
+            monthly_path = path / f"{pd.Period(month).strftime('%m%y')}.csv"
+            os.makedirs(os.path.dirname(monthly_path), exist_ok=True)
+            group.to_csv(
+                monthly_path,
+                index=False,
+            )
 
     def identify_transfers(self) -> None:
         """
@@ -218,12 +244,12 @@ class Banker:
                             receiving_description, receiving_transaction.description
                         )
                     ):
-                        self.log.append(
+                        print(
                             f"transaction of {self.format_amount(sending_transaction.amount)} from "
                             f"{sending_account.name} to {receiving_account.name} ({sending_transaction.description}) "
                             "is transfer"
                         )
-                        self.log.append(
+                        print(
                             f"transaction of {self.format_amount(receiving_transaction.amount)} from "
                             f"{receiving_account.name} to {sending_account.name} ({receiving_transaction.description}) "
                             "is transfer"
@@ -235,9 +261,7 @@ class Banker:
             if not transfers_in_pass:
                 break
             passes_ran += 1
-            self.log.append(
-                f"{transfers_in_pass} transfers identified in pass {passes_ran}\n"
-            )
+            print(f"{transfers_in_pass} transfers identified in pass {passes_ran}\n")
             transfers_in_pass = 0
 
     def find_counter_transactions(
@@ -276,12 +300,12 @@ class Banker:
             if original_transaction is None:
                 continue
 
-            self.log.append(
+            print(
                 f"transaction of {self.format_amount(transaction.amount)} from "
                 f"{account.name} ({transaction.description}) "
                 "is return"
             )
-            self.log.append(
+            print(
                 f"transaction of {self.format_amount(original_transaction.amount)} from "
                 f"{account.name} ({original_transaction.description}) "
                 "is returned"

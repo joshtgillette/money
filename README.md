@@ -1,6 +1,6 @@
 # Money - Personal Finance Manager
 
-A Python-based personal finance management system that normalizes transactions from various banks and generates reports.
+A Python-based personal finance management system that normalizes transactions from various banks.
 
 ## Features
 
@@ -41,9 +41,9 @@ The system supports manual tagging of transactions to categorize them for better
 
 4. Next time you run the program, even if you download new transaction data with overlapping dates, your tags will be preserved.
 
-#### Tag Reports
+#### Tagging
 
-After running the program, check the `report/transactions/tags/` directory for:
+After running the program, check the `transactions/tags/` directory for:
 
 - A CSV file for each tag containing all transactions with that tag
 - `untagged.csv` containing all transactions without tags
@@ -65,12 +65,10 @@ This means each unique transaction (same date, account, amount, and description)
 money/
 ├── source transactions/      # Source CSV files from banks (input)
 ├── transactions/          # Normalized transactions with tags (editable)
-├── report/               # Generated reports
 │   ├── transactions/
-│   │   ├── tags/        # Tag-based transaction reports
-│   │   ├── accounts/    # Account-specific reports
-│   │   └── monthly/     # Monthly reports
-│   └── notes.txt
+│   ├── tags/        # Tag-based transaction transactions
+│   ├── accounts/    # Account-specific transactions
+│   └── monthly/     # Monthly transactions
 ```
 
 Note: `tags.json` is not used; tags are loaded from the `transactions/` CSV files.
