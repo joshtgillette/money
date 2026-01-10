@@ -1,13 +1,29 @@
-import pandas as pd
-
+from accounts.adapters.bank.apple import Apple
+from accounts.adapters.bank.esl import ESL
+from accounts.adapters.bank.pnc import PNC
+from accounts.adapters.bank.sofi import SoFi
+from accounts.adapters.credit.apple import Apple as AppleCredit
+from accounts.adapters.credit.chase import Chase
+from accounts.adapters.credit.wells_fargo import WellsFargo
 from accounts.banker import Banker
 from report import Report
 from tagger import Tagger
 
 
 class Advisor:
-    def __init__(self, banker: Banker) -> None:
-        self.banker: Banker = banker
+    def __init__(self) -> None:
+        self.banker: Banker = Banker(
+            SoFi("SoFi Checking"),
+            SoFi("SoFi Savings"),
+            Apple("Apple Savings"),
+            PNC("PNC Checking"),
+            PNC("PNC Savings"),
+            ESL("ESL Checking"),
+            ESL("ESL Savings"),
+            AppleCredit("Apple Card"),
+            WellsFargo("Wells Fargo Credit Card"),
+            Chase("Chase Credit Card"),
+        )
         self.tagger: Tagger = Tagger()
         self.report: Report = Report()
 
