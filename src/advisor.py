@@ -1,5 +1,3 @@
-import os
-
 import pandas as pd
 
 from accounts.banker import Banker
@@ -71,67 +69,13 @@ class Advisor:
                 f"monthly/{pd.Period(month).strftime('%m%y')}.csv",
             )
 
-        # Generate tag-based reports
-        self._generate_tag_reports()
-
-    def _generate_tag_reports(self) -> None:
-        """Generate tag-based reports in report/transactions/tags/."""
-        tags_report_path = os.path.join(self.report.DATA_PATH, "tags")
-        os.makedirs(tags_report_path, exist_ok=True)
-
-        # Collect all transactions with their tags
-        transactions_by_tag = {}  # tag -> list of transactions
-        untagged_transactions = []
-
-        for account, transaction in self.banker:
-            # Check for tag attributes in _extra_attributes
-            tag_attrs = []
-            if hasattr(transaction, "_extra_attributes"):
-                for attr, value in transaction._extra_attributes.items():
-                    if value is True:
-                        tag_attrs.append(attr.replace("_", " "))
-
-            transaction_data = {
-                "date": transaction.date,
-                "amount": transaction.amount,
-                "description": transaction.description,
-            }
-
-            if tag_attrs:
-                # Add transaction to each tag's list
-                for tag in tag_attrs:
-                    if tag not in transactions_by_tag:
-                        transactions_by_tag[tag] = []
-                    transactions_by_tag[tag].append(transaction_data)
-            else:
-                untagged_transactions.append(transaction_data)
-
-        # Write a CSV for each tag
-        for tag, transactions in transactions_by_tag.items():
-            # Sanitize tag name for use in file path
-            safe_tag = self._sanitize_filename(tag)
-            df = pd.DataFrame(transactions)
-            df = df.sort_values("date").reset_index(drop=True)
-            filepath = os.path.join(tags_report_path, f"{safe_tag}.csv")
-            df.to_csv(filepath, index=False)
-
-        # Write untagged transactions
-        if untagged_transactions:
-            df = pd.DataFrame(untagged_transactions)
-            df = df.sort_values("date").reset_index(drop=True)
-            filepath = os.path.join(tags_report_path, "untagged.csv")
-            df.to_csv(filepath, index=False)
-
-    def _sanitize_filename(self, filename: str) -> str:
-        """Sanitize a string for safe use as a filename.
-
-        Removes path traversal characters and other unsafe characters.
-        """
-        # Remove path separators and other dangerous characters
-        safe_name = filename.replace("/", "_").replace("\\", "_").replace("..", "_")
-        # Remove any other potentially problematic characters
-        safe_name = "".join(c for c in safe_name if c.isalnum() or c in (" ", "_", "-"))
-        # Strip leading/trailing whitespace and periods
-        safe_name = safe_name.strip(". ")
-        # Ensure the name isn't empty after sanitization
-        return safe_name if safe_name else "unknown"
+        # Write tagged transactions to report
+        [
+            self.report.write_transactions(
+                self.banker.get_transactions(
+                    lambda t: getattr(t, tag.replace(" ", "_"), False)
+                ),
+                f"tags/{tag}",
+            )
+            for tag in self.tagger.get_all_tags()
+        ]

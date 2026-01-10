@@ -18,6 +18,13 @@ class Tagger:
     def __init__(self) -> None:
         self.tags: Dict[str, str] = {}  # hash -> comma-separated tags (lowercase)
 
+    def get_all_tags(self):
+        tags = []
+        for tag_value in self.tags.values():
+            tags.extend(tag_value.split("|"))
+
+        return set(tags)
+
     def load_existing_tags(self, banker: Banker) -> None:
         for csv_path in banker.discover_csvs(self.TRANSACTIONS_PATH):
             transactions: Dict[int, Transaction] = banker.load_transactions(
@@ -31,7 +38,6 @@ class Tagger:
 
         # Save labels as fallback
         with Path(self.TAGS_PATH).open("w") as file:
-            print(self.tags)
             json.dump(self.tags, file)
 
     def apply_tags(self, banker: Banker) -> None:

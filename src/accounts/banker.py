@@ -17,7 +17,6 @@ class Banker:
         self.accounts: Dict[str, Account] = {
             account.name.lower(): account for account in accounts
         }
-        self.transactions: pd.DataFrame = pd.DataFrame()
         self.log: List[str] = []
 
     def load_account_transactions(self) -> None:
