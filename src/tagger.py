@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 from typing import Dict
 
@@ -12,7 +11,6 @@ class Tagger:
     """Manages transaction tags loaded from CSV files."""
 
     TAGS_PATH: Path = Path("tagged")
-    TAGS_JSON_PATH: Path = TAGS_PATH / "tags.json"
 
     def __init__(self, banker: Banker) -> None:
         self.banker = banker
@@ -36,10 +34,6 @@ class Tagger:
                     continue
 
                 self.tags[transaction.hash()] = transaction.get_tags()
-
-        # Save labels as fallback
-        with Path(self.TAGS_PATH).open("w") as file:
-            json.dump(self.tags, file)
 
     def apply_tags(self) -> None:
         for _, transaction in self.banker:
