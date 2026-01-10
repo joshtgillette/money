@@ -20,6 +20,7 @@ class Banker:
         self.log: List[str] = []
 
     def load_account_transactions(self) -> None:
+        # Read all available source transactions
         for csv_path in self.discover_csvs(self.SOURCE_TRANSACTIONS_PATH):
             account = self.accounts.get(csv_path.name.replace(".csv", ""), None)
             if not account:
@@ -27,10 +28,16 @@ class Banker:
 
             account.add_source_transactions(csv_path)
 
+        # Normalize source transactions to a common format and load
         for _, account in self.accounts.items():
             account.transactions = self.load_transactions(
                 account.normalize_source_transactions()
             )
+
+    @staticmethod
+    def discover_csvs(path: str) -> List[Path]:
+        """Recursively discover all CSV files in the given path."""
+        return list(Path(path).rglob("*.csv"))
 
     @staticmethod
     def load_transactions(transactions_data: pd.DataFrame) -> Dict[int, Transaction]:
@@ -46,11 +53,6 @@ class Banker:
             )
 
         return transactions
-
-    @staticmethod
-    def discover_csvs(path: str) -> List[Path]:
-        """Recursively discover all CSV files in the given path."""
-        return list(Path(path).rglob("*.csv"))
 
     def __iter__(self) -> Iterator[Tuple[Account, Transaction]]:
         for _, account in self.accounts.items():

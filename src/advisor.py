@@ -8,8 +8,8 @@ from tagger import Tagger
 class Advisor:
     def __init__(self, banker: Banker) -> None:
         self.banker: Banker = banker
-        self.report: Report = Report()
         self.tagger: Tagger = Tagger()
+        self.report: Report = Report()
 
     def start(self) -> None:
         # Load existing tags from transactions directory before loading new data
