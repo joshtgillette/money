@@ -1,87 +1,76 @@
 # Money - Personal Finance Manager
 
-A Python-based personal finance management system that normalizes transactions from various banks.
+A Python-based personal finance management system that normalizes and organizes transactions from multiple banks and credit cards.
 
 ## Features
 
+### Transaction Normalization
+
+The system automatically converts CSV files from various banks into a standardized format for easy analysis and tracking.
+
 ### Transaction Tagging
 
-The system supports manual tagging of transactions to categorize them for better analysis.
+Manually tag transactions to categorize and organize your spending.
 
-#### How It Works
+#### How Tagging Works
 
-1. **Transactions Directory**: After running the program, transactions are saved to the `transactions/` directory, organized by month (e.g., `0525.csv` for May 2025).
+1. **Load Transactions**: Run the program to normalize transactions from your bank CSV files
+2. **Tag Transactions**: Open monthly CSV files in `transactions/months/` and add tags in the `tags` column
+3. **Persistent Tags**: Tags are automatically preserved when you reload transactions
+4. **Multiple Tags**: Separate multiple tags with pipes: `tag1|tag2|tag3`
+5. **Tag Reports**: View transactions grouped by tag in the `transactions/tagged/` directory
 
-2. **Tag Column**: Each monthly CSV file includes a `tag` column where you can manually add tags to transactions.
+#### Tagging Example
 
-3. **Tag Persistence**: Tags are stored in a `tags.json` file and persist across runs. When you download new transaction data, previously tagged transactions will automatically retain their tags.
+After running the program, edit `transactions/months/0525.csv`:
 
-4. **Multiple Tags**: You can add multiple tags to a transaction by separating them with commas (e.g., `shopping,home improvement`).
+```csv
+date,amount,description,tags
+2024-05-15,1500.0,PAYROLL DEPOSIT,income
+2024-05-16,-45.5,AMAZON PURCHASE,shopping|home improvement
+2024-05-20,-120.0,ELECTRIC COMPANY,utilities
+```
 
-5. **Case Insensitive**: Tags are automatically normalized to lowercase (e.g., "Income" and "income" are treated the same).
-
-#### Example Usage
-
-1. Run the program to load transactions:
-
-   ```bash
-   python src/main.py
-   ```
-
-2. Open `transactions/0525.csv` and add tags to the tag column:
-
-   ```csv
-   date,account,amount,description,tag
-   2024-05-15,SoFi Checking,1500.0,COMCAST (CC) OF PAYROLL,income
-   2024-05-16,SoFi Checking,-45.5,AMAZON PURCHASE,"shopping,home improvement"
-   2024-05-20,SoFi Checking,-120.0,ELECTRIC COMPANY,utilities
-   ```
-
-3. The tags are automatically saved to `tags.json` for persistence.
-
-4. Next time you run the program, even if you download new transaction data with overlapping dates, your tags will be preserved.
-
-#### Tagging
-
-After running the program, check the `transactions/tags/` directory for:
-
-- A CSV file for each tag containing all transactions with that tag
-- `untagged.csv` containing all transactions without tags
+On the next run, your tags will be preserved and transactions will be organized in `transactions/tagged/` by tag name.
 
 #### Transaction Matching
 
-Tags are matched based on:
+Tags are matched to transactions using a unique hash of:
+- Date
+- Amount  
+- Description
 
-- **Date**: The transaction date
-- **Account**: The transaction account
-- **Amount**: The transaction amount
-- **Description**: The transaction description
-
-This means each unique transaction (same date, account, amount, and description) will have its own tags.
+This ensures each unique transaction maintains its own tags across program runs.
 
 ## Directory Structure
 
 ```
 money/
-├── source transactions/      # Source CSV files from banks (input)
-├── transactions/          # Normalized transactions with tags (editable)
-│   ├── transactions/
-│   ├── tags/        # Tag-based transaction transactions
-│   ├── accounts/    # Account-specific transactions
-│   └── monthly/     # Monthly transactions
+├── source transactions/    # Place your bank CSV files here (input)
+├── transactions/
+│   ├── all.csv            # All transactions combined
+│   ├── months/            # Transactions grouped by month (editable)
+│   ├── accounts/          # Transactions grouped by account
+│   └── tagged/            # Transactions grouped by tag
+└── src/                   # Application source code
 ```
-
-Note: `tags.json` is not used; tags are loaded from the `transactions/` CSV files.
 
 ## Setup
 
-1. Install dependencies:
+### Prerequisites
 
+- Python 3.13 or higher
+- pandas library
+
+### Installation
+
+1. Install dependencies:
    ```bash
    pip install pandas
    ```
 
-2. Place your bank transaction CSV files in the `source transactions/` directory, named according to your account names (e.g., `sofi checking.csv`).
+2. Place your bank CSV files in the `source transactions/` directory
+   - Name files using lowercase account names (e.g., `sofi checking.csv`, `apple card.csv`)
 
 3. Run the program:
    ```bash
@@ -90,14 +79,41 @@ Note: `tags.json` is not used; tags are loaded from the `transactions/` CSV file
 
 ## Supported Banks
 
-The system currently supports the following banks with their specific CSV formats:
+The system includes adapters for the following financial institutions:
 
-- SoFi (Checking and Savings)
-- Apple (Savings)
-- PNC (Checking and Savings)
-- ESL (Checking and Savings)
-- Apple Card (Credit)
-- Wells Fargo (Credit Card)
-- Chase (Credit Card)
+### Bank Accounts
+- **SoFi** - Checking and Savings
+- **Apple** - Savings
+- **PNC** - Checking and Savings
+- **ESL Federal Credit Union** - Checking and Savings
 
-Each bank has an adapter that normalizes its specific CSV format into a standard format.
+### Credit Cards
+- **Apple Card**
+- **Chase**
+- **Wells Fargo**
+
+Each adapter handles the specific CSV format for that institution and normalizes it to a standard format.
+
+## Adding New Banks
+
+To add support for a new bank:
+
+1. Create an adapter class in `src/accounts/adapters/bank/` or `src/accounts/adapters/credit/`
+2. Inherit from `BankAccount` or `CreditCard`
+3. Define normalizer functions for date, amount, and description columns
+4. Add the adapter to the `Advisor` class in `src/advisor.py`
+
+See existing adapters for examples.
+
+## Usage
+
+1. **Initial Load**: Place CSV files in `source transactions/` and run `python src/main.py`
+2. **Add Tags**: Edit CSV files in `transactions/months/` to add tags
+3. **Reload**: Run the program again - tags will be preserved and reports regenerated
+4. **View Reports**: Check organized transactions in the `transactions/` directory
+
+## Notes
+
+- The program clears and regenerates the `transactions/` directory on each run
+- Tags are loaded from the `transactions/months/` CSV files, not from a separate tags file
+- All financial data stays local - nothing is uploaded or shared

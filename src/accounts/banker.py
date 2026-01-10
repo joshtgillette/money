@@ -1,3 +1,5 @@
+"""Manages multiple bank accounts and provides transaction operations."""
+
 import os
 from datetime import datetime
 from difflib import SequenceMatcher
@@ -12,13 +14,16 @@ from transaction import Transaction
 
 
 class Banker:
+    """Manages financial accounts and provides operations for transaction handling."""
+    
     def __init__(self, *accounts: Account) -> None:
+        """Initialize the banker with a collection of financial accounts."""
         self.accounts: Dict[str, Account] = {
             account.name.lower(): account for account in accounts
         }
 
-    def load_account_transactions(self, source_transactions_path) -> None:
-        # Read all available source transactions
+    def load_account_transactions(self, source_transactions_path: Path) -> None:
+        """Load and normalize transactions from source CSV files for all accounts."""
         for csv_path in self.discover_csvs(source_transactions_path):
             account = self.accounts.get(csv_path.name.replace(".csv", ""), None)
             if not account:
@@ -39,6 +44,7 @@ class Banker:
 
     @staticmethod
     def load_transactions(transactions_data: pd.DataFrame) -> Dict[int, Transaction]:
+        """Parse transaction data from a DataFrame into Transaction objects."""
         transactions: Dict[int, Transaction] = {}
         for row in transactions_data.itertuples():
             index = cast(int, row.Index)
@@ -60,7 +66,7 @@ class Banker:
     def filter_transactions(
         self, *predicates: Callable[[Transaction], bool]
     ) -> List[Transaction]:
-        # Collect transactions based on predicates
+        """Filter transactions across all accounts using provided predicate functions."""
         return [
             transaction
             for _, transaction in self
@@ -74,6 +80,7 @@ class Banker:
         columns: List[str] = ["date", "amount", "description", "tags"],
         by_month: bool = False,
     ) -> None:
+        """Write transactions to CSV files, optionally grouped by month."""
         transaction_data = pd.DataFrame(
             [transaction.to_dict() for transaction in transactions]
         )
@@ -96,18 +103,10 @@ class Banker:
             )
 
     def identify_transfers(self) -> None:
-        """
-        Identify internal transfers between bank accounts. Identification is dependent on relating a candidate
-        transfer's sending and receiving account to the transfer and counter-transfer's descriptions along with
-        a confidence value indicating the frequency of transfer's with the same descriptions between the accounts.
-
-        phase 1: build the account-transfer-description (ATD) confidence directory that relates a potential
-                 transfer's sending and receiving account by the transactions' descriptions.
-            1. For each transaction, find a sole counter transaction indicating a transfer
-            2. Link the sending and receiving accounts by the transfer's description pair with a confidence value
-        phase 2: identify transactions with accounts and descriptions in the ATD confidence mapping that have both the highest confidence value.
-
-        repeat these phases until transfers are no longer identified
+        """Identify and mark internal transfers between accounts.
+        
+        Uses a two-phase approach to build confidence in transfer identification
+        based on matching amounts, dates, and description patterns.
         """
 
         atd_confidence: Dict[
@@ -267,9 +266,7 @@ class Banker:
     def find_counter_transactions(
         self, account: Account, transaction: Transaction
     ) -> List[Tuple[Account, Transaction]]:
-        """Find counter-transactions for a given transaction."""
-
-        # A counter transaction is a valid counter-priced transaction in another account, not a guaranteed transfer
+        """Find potential matching transactions that could represent transfers."""
         return [
             (a, t)
             for a, t in self
@@ -285,11 +282,13 @@ class Banker:
     def equate_transaction_descriptions(
         self, d1: Optional[str], d2: str, threshold: float = 0.90
     ) -> bool:
+        """Compare two transaction descriptions for similarity above a threshold."""
         if d1 is None:
             return False
         return SequenceMatcher(None, d1, d2).ratio() >= threshold
 
     def identify_returns(self) -> None:
+        """Identify and mark product returns or refunds within accounts."""
         for account, transaction in self:
             if transaction.is_transfer or not account.is_return_candidate(transaction):
                 continue
@@ -316,18 +315,24 @@ class Banker:
     def set_transfer(
         self, account: Account, transaction_index: int, value: bool = True
     ) -> None:
+        """Mark a transaction as a transfer or not."""
         if transaction_index in account.transactions:
             account.transactions[transaction_index].is_transfer = value
 
     def is_transfer(self, account: Account, transaction_index: int) -> bool:
+        """Check if a transaction is marked as a transfer."""
         if transaction_index in account.transactions:
             return account.transactions[transaction_index].is_transfer
         return False
 
     def format_amount(self, amount: float) -> str:
+        """Format a transaction amount as a currency string with sign."""
         return f"-${abs(amount):.2f}" if amount < 0 else f"${abs(amount):.2f}"
 
     def get_log(self) -> str:
+        """Retrieve and clear the accumulated log messages."""
         log_string: str = "\n".join(self.log)
+        self.log = []
+        return log_string
         self.log = []
         return log_string

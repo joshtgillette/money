@@ -1,3 +1,5 @@
+"""Personal finance advisor that orchestrates transaction loading, tagging, and reporting."""
+
 import shutil
 from pathlib import Path
 
@@ -13,11 +15,14 @@ from tagger import Tagger
 
 
 class Advisor:
+    """Orchestrates loading, tagging, and organizing financial transactions."""
+    
     SOURCE_TRANSACTIONS_PATH: Path = Path("source transactions")
     PROCESSED_TRANSACTIONS_PATH: Path = Path("transactions")
     TAGGING_PATH: Path = PROCESSED_TRANSACTIONS_PATH / "months"
 
     def __init__(self) -> None:
+        """Initialize the advisor with supported bank accounts and tagging system."""
         self.banker: Banker = Banker(
             SoFi("SoFi Checking"),
             SoFi("SoFi Savings"),
@@ -33,7 +38,7 @@ class Advisor:
         self.tagger: Tagger = Tagger(self.banker)
 
     def advise(self) -> None:
-        # Load existing tags before fresh load of source transactions
+        """Load transactions, apply tags, and generate organized transaction reports."""
         self.tagger.load_existing_tags(self.TAGGING_PATH)
 
         # Direct the banker to load transactions for the provided accounts
