@@ -3,6 +3,7 @@
 import pandas as pd
 
 from accounts.adapters.bank.bank_account import BankAccount
+from transaction import Transaction
 
 
 class PNC(BankAccount):
@@ -16,3 +17,9 @@ class PNC(BankAccount):
             df["Amount"].str.replace(r"[\+\$\s]", "", regex=True)
         )
         self.description_normalizer = lambda df: df["Transaction Description"]
+
+    def is_transaction_income(self, transaction: Transaction) -> bool:
+        return (
+            transaction.description
+            == "COMCAST (CC) OF PAYROLL ACH CREDIT xxxxxxxxxx6072"
+        )

@@ -23,7 +23,10 @@ class Advisor:
     SOURCE_TRANSACTIONS_PATH: Path = Path("source transactions")
     PROCESSED_TRANSACTIONS_PATH: Path = Path("transactions")
     TAGGING_PATH: Path = PROCESSED_TRANSACTIONS_PATH / "months"
-    TAGGERS: Dict[str, Callable[[Account, Transaction], bool]] = {}
+    TAGGERS: Dict[str, Callable[[Account, Transaction], bool]] = {
+        "INCOME": lambda account, transaction: transaction.amount > 0
+        and account.is_transaction_income(transaction),
+    }
 
     def __init__(self) -> None:
         """Initialize the advisor with supported bank accounts and tagging system."""
