@@ -52,7 +52,10 @@ class Transaction:
 
     def __getattr__(self, name: str) -> Any:
         """Allow access to tags as dynamic attributes."""
-        return self._tags.get(name, False)
+        name = name.replace(" ", "_")
+        return self._tags.get(name.lower(), False) or self._tags.get(
+            name.upper(), False
+        )
 
     def __setattr__(self, name: str, value: Any) -> None:
         """Allow setting tags as dynamic attributes."""

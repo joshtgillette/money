@@ -96,7 +96,7 @@ class Advisor:
         [
             self.banker.write_transactions(
                 self.banker.filter_transactions(
-                    lambda t: getattr(t, tag.replace(" ", "_"), False)
+                    lambda transaction: getattr(transaction, tag, False)
                 ),
                 self.PROCESSED_TRANSACTIONS_PATH
                 / self.tag_manager.TAGGED_PATH
@@ -107,7 +107,9 @@ class Advisor:
 
         # Write transactions with no tags
         self.banker.write_transactions(
-            self.banker.filter_transactions(lambda t: not t.get_tags()),
+            self.banker.filter_transactions(
+                lambda transaction: not transaction.get_tags()
+            ),
             self.PROCESSED_TRANSACTIONS_PATH
             / self.tag_manager.TAGGED_PATH
             / "untagged",
