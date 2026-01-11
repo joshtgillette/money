@@ -56,6 +56,10 @@ class TagManager:
             transaction.set_tags(tags)
 
     def auto_tag(self) -> None:
+        for tag in self.taggers.keys():
+            for account, transaction in self.banker:
+                transaction._tags.pop(tag, None)
+
         for tag, evaluator in self.taggers.items():
             if isinstance(evaluator, TransferTagger):
                 evaluator.identify_transfers()
