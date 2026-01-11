@@ -21,7 +21,7 @@ from transaction import Transaction
 class Advisor:
     """Orchestrates loading, tagging, and organizing financial transactions."""
 
-    SOURCE_TRANSACTIONS_PATH: Path = Path("source transactions")
+    SOURCE_TRANSACTIONS_PATH: Path = Path("sources")
     PROCESSED_TRANSACTIONS_PATH: Path = Path("transactions")
     TAGGING_PATH: Path = PROCESSED_TRANSACTIONS_PATH / "months"
     TAGGERS: Dict[str, Callable[[Account, Transaction], bool] | TransferTagger] = {

@@ -47,7 +47,7 @@ This ensures each unique transaction maintains its own tags across program runs.
 
 ```
 money/
-├── source transactions/    # Place your bank CSV files here (input)
+├── sources/    # Place your bank CSV files here (input)
 ├── transactions/
 │   ├── all.csv            # All transactions combined
 │   ├── months/            # Transactions grouped by month (editable)
@@ -71,7 +71,7 @@ money/
    pip install pandas
    ```
 
-2. Place your bank CSV files in the `source transactions/` directory
+2. Place your bank CSV files in the `sources/` directory
    - Name files using lowercase account names (e.g., `sofi checking.csv`, `apple card.csv`)
 
 3. Run the program:
@@ -111,7 +111,7 @@ See existing adapters for examples.
 
 ## Usage
 
-1. **Initial Load**: Place CSV files in `source transactions/` and run `python src/main.py`
+1. **Initial Load**: Place CSV files in `sources/` and run `python src/main.py`
 2. **Add Tags**: Edit CSV files in `transactions/months/` to add tags
 3. **Reload**: Run the program again - tags will be preserved and reports regenerated
 4. **View Reports**: Check organized transactions in the `transactions/` directory
