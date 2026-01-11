@@ -1,6 +1,7 @@
 """Personal finance advisor that orchestrates transaction loading, tagging, and reporting."""
 
 import shutil
+from datetime import datetime
 from pathlib import Path
 from typing import Callable, Dict
 
@@ -30,6 +31,8 @@ class Advisor:
         "INTEREST": lambda account, transaction: account.is_transaction_interest(
             transaction
         ),
+        "RENO": lambda account, transaction: isinstance(account, Chase)
+        and transaction.date > datetime(2025, 9, 1),
     }
 
     def __init__(self) -> None:
