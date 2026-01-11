@@ -33,6 +33,10 @@ class Advisor:
         ),
         "RENO": lambda account, transaction: isinstance(account, Chase)
         and transaction.date > datetime(2025, 9, 1),
+        "SUBSCRIPTIONS": lambda account, transaction: "APPLE.COM/BILL"
+        in transaction.description
+        or "HBOMAX.COM" in transaction.description
+        or "GITHUB.COM" in transaction.description,
     }
 
     def __init__(self) -> None:
