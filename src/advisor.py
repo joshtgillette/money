@@ -2,7 +2,9 @@
 
 import shutil
 from pathlib import Path
+from typing import Callable, Dict
 
+from accounts.adapters.account import Account
 from accounts.adapters.bank.apple import Apple
 from accounts.adapters.bank.esl import ESL
 from accounts.adapters.bank.pnc import PNC
@@ -12,6 +14,7 @@ from accounts.adapters.credit.chase import Chase
 from accounts.adapters.credit.wells_fargo import WellsFargo
 from accounts.banker import Banker
 from tagging.tag_manager import TagManager
+from transaction import Transaction
 
 
 class Advisor:
@@ -20,6 +23,7 @@ class Advisor:
     SOURCE_TRANSACTIONS_PATH: Path = Path("source transactions")
     PROCESSED_TRANSACTIONS_PATH: Path = Path("transactions")
     TAGGING_PATH: Path = PROCESSED_TRANSACTIONS_PATH / "months"
+    TAGGERS: Dict[str, Callable[[Account, Transaction], bool]] = {}
 
     def __init__(self) -> None:
         """Initialize the advisor with supported bank accounts and tagging system."""
@@ -35,7 +39,7 @@ class Advisor:
             WellsFargo("Wells Fargo Credit Card"),
             Chase("Chase Credit Card"),
         )
-        self.tag_manager: TagManager = TagManager(self.banker)
+        self.tag_manager: TagManager = TagManager(self.banker, self.TAGGERS)
 
     def advise(self) -> None:
         """Load transactions, apply tags, and generate organized transaction reports."""
@@ -56,6 +60,7 @@ class Advisor:
 
         # Apply tags to loaded transactions
         self.tag_manager.apply_tags()
+        self.tag_manager.auto_tag()
 
         # Wipe processed transactions for fresh write
         shutil.rmtree(self.PROCESSED_TRANSACTIONS_PATH, ignore_errors=True)
@@ -85,7 +90,9 @@ class Advisor:
                 self.banker.filter_transactions(
                     lambda t: getattr(t, tag.replace(" ", "_"), False)
                 ),
-                self.PROCESSED_TRANSACTIONS_PATH / self.tag_manager.TAGS_PATH / tag,
+                self.PROCESSED_TRANSACTIONS_PATH
+                / self.tag_manager.TAGGED_PATH
+                / tag.lower(),
             )
             for tag in self.tag_manager.get_all_tags()
         ]

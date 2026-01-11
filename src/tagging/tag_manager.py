@@ -1,8 +1,9 @@
 from pathlib import Path
-from typing import Dict
+from typing import Callable, Dict
 
 import pandas as pd
 
+from accounts.adapters.account import Account
 from accounts.banker import Banker
 from transaction import Transaction
 
@@ -10,12 +11,15 @@ from transaction import Transaction
 class TagManager:
     """Manages transaction tagging by loading and applying tags from CSV files."""
 
-    TAGS_PATH: Path = Path("tagged")
+    TAGGED_PATH: Path = Path("tagged")
 
-    def __init__(self, banker: Banker) -> None:
-        """Initialize the tagger with a banker instance."""
+    def __init__(
+        self, banker: Banker, taggers: Dict[str, Callable[[Account, Transaction], bool]]
+    ) -> None:
+        """Initialize the tagger with a banker instance and tag evaluation functions."""
         self.banker: Banker = banker
         self.tags: Dict[str, str] = {}  # hash -> pipe-separated tags
+        self.taggers = taggers
 
     def get_all_tags(self) -> set[str]:
         """Extract all unique tags from stored tag mappings."""
@@ -33,10 +37,11 @@ class TagManager:
                 pd.read_csv(csv_path)
             )
             for _, transaction in transactions.items():
-                if not transaction.get_tags():
+                tags_val: str = transaction.get_tags_val()
+                if not tags_val:
                     continue
 
-                self.tags[transaction.hash()] = transaction.get_tags()
+                self.tags[transaction.hash()] = tags_val
 
     def apply_tags(self) -> None:
         """Apply loaded tags to matching transactions in the banker's accounts."""
@@ -46,3 +51,14 @@ class TagManager:
                 continue
 
             transaction.set_tags(tags)
+
+    def auto_tag(self) -> None:
+        for account, transaction in self.banker:
+            for tag, evaluator in self.taggers.items():
+                # Do not auto tag transactions with existing manual tag (denoted by lowercase)
+                if any(t.islower() for t in transaction.get_tags()) or not evaluator(
+                    account, transaction
+                ):
+                    continue
+
+                setattr(transaction, tag, True)
