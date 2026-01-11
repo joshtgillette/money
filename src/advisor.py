@@ -14,6 +14,7 @@ from accounts.adapters.credit.chase import Chase
 from accounts.adapters.credit.wells_fargo import WellsFargo
 from accounts.banker import Banker
 from tagging.tag_manager import TagManager
+from tagging.transfer_tagger import TransferTagger
 from transaction import Transaction
 
 
@@ -23,7 +24,7 @@ class Advisor:
     SOURCE_TRANSACTIONS_PATH: Path = Path("source transactions")
     PROCESSED_TRANSACTIONS_PATH: Path = Path("transactions")
     TAGGING_PATH: Path = PROCESSED_TRANSACTIONS_PATH / "months"
-    TAGGERS: Dict[str, Callable[[Account, Transaction], bool]] = {
+    TAGGERS: Dict[str, Callable[[Account, Transaction], bool] | TransferTagger] = {
         "INCOME": lambda account, transaction: transaction.amount > 0
         and account.is_transaction_income(transaction),
         "INTEREST": lambda account, transaction: account.is_transaction_interest(
@@ -45,6 +46,7 @@ class Advisor:
             WellsFargo("Wells Fargo Credit Card"),
             Chase("Chase Credit Card"),
         )
+        self.TAGGERS["TRANSFER"] = TransferTagger(self.banker)
         self.tag_manager: TagManager = TagManager(self.banker, self.TAGGERS)
 
     def advise(self) -> None:

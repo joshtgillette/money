@@ -86,3 +86,6 @@ class Transaction:
             "description": self.description,
             "tags": self.get_tags_val(),
         }
+
+    def __repr__(self) -> str:
+        return f"{self.account_name}, {self.description} on {self.date.strftime('%m/%d/%y')} for {self.amount}"

@@ -1,10 +1,11 @@
 from pathlib import Path
-from typing import Callable, Dict
+from typing import Callable, Dict, List
 
 import pandas as pd
 
 from accounts.adapters.account import Account
 from accounts.banker import Banker
+from tagging.transfer_tagger import TransferTagger
 from transaction import Transaction
 
 
@@ -14,7 +15,9 @@ class TagManager:
     TAGGED_PATH: Path = Path("tagged")
 
     def __init__(
-        self, banker: Banker, taggers: Dict[str, Callable[[Account, Transaction], bool]]
+        self,
+        banker: Banker,
+        taggers: Dict[str, Callable[[Account, Transaction], bool] | TransferTagger],
     ) -> None:
         """Initialize the tagger with a banker instance and tag evaluation functions."""
         self.banker: Banker = banker
@@ -23,12 +26,12 @@ class TagManager:
 
     def get_all_tags(self) -> set[str]:
         """Extract all unique tags from stored tag mappings."""
-        return {
+        return set(
             tag.strip()
-            for tags in self.tags.values()
-            for tag in tags.split("|")
+            for _, transaction in self.banker
+            for tag in transaction.get_tags()
             if tag.strip()
-        }
+        )
 
     def load_existing_tags(self, tagging_path: Path) -> None:
         """Load previously saved tags from CSV files in the specified path."""
@@ -53,8 +56,12 @@ class TagManager:
             transaction.set_tags(tags)
 
     def auto_tag(self) -> None:
-        for account, transaction in self.banker:
-            for tag, evaluator in self.taggers.items():
+        for tag, evaluator in self.taggers.items():
+            if isinstance(evaluator, TransferTagger):
+                evaluator.identify_transfers()
+                continue
+
+            for account, transaction in self.banker:
                 # Do not auto tag transactions with existing manual tag (denoted by lowercase)
                 if any(t.islower() for t in transaction.get_tags()) or not evaluator(
                     account, transaction
@@ -62,3 +69,10 @@ class TagManager:
                     continue
 
                 setattr(transaction, tag, True)
+
+    def remove_tags(self, tags: List[str]) -> None:
+        for tag in tags:
+            for account, transaction in self.banker:
+                transaction._tags.pop(tag, None)
+
+            self.tags = dict(filter(lambda item: item[1] != tag, self.tags.items()))
