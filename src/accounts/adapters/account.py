@@ -45,6 +45,9 @@ class Account(ABC):
     def is_transaction_income(self, transaction: Transaction) -> bool:
         return False
 
+    def is_transaction_interest(self, transaction: Transaction) -> bool:
+        return False
+
     def is_return_candidate(self, transaction: Transaction) -> bool:
         """Determine if a transaction could be a return or refund."""
         return (

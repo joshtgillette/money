@@ -23,3 +23,6 @@ class PNC(BankAccount):
             transaction.description
             == "COMCAST (CC) OF PAYROLL ACH CREDIT xxxxxxxxxx6072"
         )
+
+    def is_transaction_interest(self, transaction: Transaction) -> bool:
+        return transaction.description == "INTEREST PAYMENT"

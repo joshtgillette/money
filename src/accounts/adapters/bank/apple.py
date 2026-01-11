@@ -24,3 +24,6 @@ class Apple(BankAccount):
 
     def is_transaction_income(self, transaction: Transaction) -> bool:
         return transaction.description == "ACH Transfer from COMCAST (CC) OF PAYROLL"
+
+    def is_transaction_interest(self, transaction: Transaction) -> bool:
+        return transaction.description == "Interest Paid"

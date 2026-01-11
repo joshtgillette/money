@@ -18,3 +18,6 @@ class SoFi(BankAccount):
 
     def is_transaction_income(self, transaction: Transaction) -> bool:
         return transaction.description == "COMCAST (CC) OF"
+
+    def is_transaction_interest(self, transaction: Transaction) -> bool:
+        return transaction.description == "Interest earned"

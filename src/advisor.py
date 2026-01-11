@@ -26,6 +26,9 @@ class Advisor:
     TAGGERS: Dict[str, Callable[[Account, Transaction], bool]] = {
         "INCOME": lambda account, transaction: transaction.amount > 0
         and account.is_transaction_income(transaction),
+        "INTEREST": lambda account, transaction: account.is_transaction_interest(
+            transaction
+        ),
     }
 
     def __init__(self) -> None:
