@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Callable, Dict, List
+from typing import Callable, Dict
 
 import pandas as pd
 
@@ -21,7 +21,6 @@ class TagManager:
     ) -> None:
         """Initialize the tagger with a banker instance and tag evaluation functions."""
         self.banker: Banker = banker
-        self.tags: Dict[str, str] = {}  # hash -> pipe-separated tags
         self.taggers = taggers
 
     def get_all_tags(self) -> set[str]:
@@ -33,8 +32,9 @@ class TagManager:
             if tag.strip()
         )
 
-    def load_existing_tags(self, tagging_path: Path) -> None:
+    def get_existing_tags(self, tagging_path: Path) -> Dict[str, str]:
         """Load previously saved tags from CSV files in the specified path."""
+        existing_tags: Dict[str, str] = {}
         for csv_path in self.banker.discover_csvs(tagging_path):
             transactions: Dict[int, Transaction] = self.banker.load_transactions(
                 pd.read_csv(csv_path)
@@ -44,12 +44,14 @@ class TagManager:
                 if not tags_val:
                     continue
 
-                self.tags[transaction.hash()] = tags_val
+                existing_tags[transaction.hash()] = tags_val
 
-    def apply_tags(self) -> None:
+        return existing_tags
+
+    def apply_tags(self, existing_tags) -> None:
         """Apply loaded tags to matching transactions in the banker's accounts."""
         for _, transaction in self.banker:
-            tags: str | None = self.tags.get(transaction.hash(), None)
+            tags: str | None = existing_tags.get(transaction.hash(), None)
             if not tags:
                 continue
 
@@ -73,10 +75,3 @@ class TagManager:
                     continue
 
                 setattr(transaction, tag, True)
-
-    def remove_tags(self, tags: List[str]) -> None:
-        for tag in tags:
-            for account, transaction in self.banker:
-                transaction._tags.pop(tag, None)
-
-            self.tags = dict(filter(lambda item: item[1] != tag, self.tags.items()))

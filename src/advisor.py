@@ -51,7 +51,7 @@ class Advisor:
 
     def advise(self) -> None:
         """Load transactions, apply tags, and generate organized transaction reports."""
-        self.tag_manager.load_existing_tags(self.TAGGING_PATH)
+        existing_tags = self.tag_manager.get_existing_tags(self.TAGGING_PATH)
 
         # Direct the banker to load transactions for the provided accounts
         self.banker.load_account_transactions(self.SOURCE_TRANSACTIONS_PATH)
@@ -67,7 +67,7 @@ class Advisor:
             )
 
         # Apply tags to loaded transactions
-        self.tag_manager.apply_tags()
+        self.tag_manager.apply_tags(existing_tags)
         self.tag_manager.auto_tag()
 
         # Wipe processed transactions for fresh write
