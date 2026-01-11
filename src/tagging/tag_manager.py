@@ -7,7 +7,7 @@ from accounts.banker import Banker
 from transaction import Transaction
 
 
-class Tagger:
+class TagManager:
     """Manages transaction tagging by loading and applying tags from CSV files."""
 
     TAGS_PATH: Path = Path("tagged")

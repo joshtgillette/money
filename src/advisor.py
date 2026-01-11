@@ -11,7 +11,7 @@ from accounts.adapters.credit.apple import Apple as AppleCredit
 from accounts.adapters.credit.chase import Chase
 from accounts.adapters.credit.wells_fargo import WellsFargo
 from accounts.banker import Banker
-from tagger import Tagger
+from tagging.tag_manager import TagManager
 
 
 class Advisor:
@@ -35,11 +35,11 @@ class Advisor:
             WellsFargo("Wells Fargo Credit Card"),
             Chase("Chase Credit Card"),
         )
-        self.tagger: Tagger = Tagger(self.banker)
+        self.tag_manager: TagManager = TagManager(self.banker)
 
     def advise(self) -> None:
         """Load transactions, apply tags, and generate organized transaction reports."""
-        self.tagger.load_existing_tags(self.TAGGING_PATH)
+        self.tag_manager.load_existing_tags(self.TAGGING_PATH)
 
         # Direct the banker to load transactions for the provided accounts
         self.banker.load_account_transactions(self.SOURCE_TRANSACTIONS_PATH)
@@ -55,7 +55,7 @@ class Advisor:
             )
 
         # Apply tags to loaded transactions
-        self.tagger.apply_tags()
+        self.tag_manager.apply_tags()
 
         # Wipe processed transactions for fresh write
         shutil.rmtree(self.PROCESSED_TRANSACTIONS_PATH, ignore_errors=True)
@@ -85,7 +85,7 @@ class Advisor:
                 self.banker.filter_transactions(
                     lambda t: getattr(t, tag.replace(" ", "_"), False)
                 ),
-                self.PROCESSED_TRANSACTIONS_PATH / self.tagger.TAGS_PATH / tag,
+                self.PROCESSED_TRANSACTIONS_PATH / self.tag_manager.TAGS_PATH / tag,
             )
-            for tag in self.tagger.get_all_tags()
+            for tag in self.tag_manager.get_all_tags()
         ]
