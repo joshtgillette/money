@@ -102,3 +102,11 @@ class Advisor:
             )
             for tag in self.tag_manager.get_all_tags()
         ]
+
+        # Write transactions with no tags
+        self.banker.write_transactions(
+            self.banker.filter_transactions(lambda t: not t.get_tags()),
+            self.PROCESSED_TRANSACTIONS_PATH
+            / self.tag_manager.TAGGED_PATH
+            / "untagged",
+        )
