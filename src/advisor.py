@@ -37,6 +37,8 @@ class Advisor:
         in transaction.description
         or "HBOMAX.COM" in transaction.description
         or "GITHUB.COM" in transaction.description,
+        "INVESTMENTS": lambda account, transaction: transaction.description
+        in ["FID BKG SVC LLC", "FIDELITY INVESTMENTS WITH UMB BANK"],
     }
 
     def __init__(self) -> None:
