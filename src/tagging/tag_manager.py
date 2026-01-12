@@ -58,7 +58,10 @@ class TagManager:
             transaction.set_tags(tags)
 
     def auto_tag(self) -> None:
-        for tag in self.taggers.keys():
+        for tag in self.get_all_tags():
+            if tag.islower():
+                continue
+
             for account, transaction in self.banker:
                 transaction._tags.pop(tag, None)
 
