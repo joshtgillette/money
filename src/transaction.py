@@ -48,6 +48,11 @@ class Transaction:
         return "|".join([tag.replace("_", " ") for tag in self._tags])
 
     def get_tags(self) -> List[str]:
+        """Return all tags as a list of tag names.
+        
+        Returns:
+            List of tag names associated with this transaction
+        """
         return list(self._tags.keys())
 
     def __getattr__(self, name: str) -> Any:

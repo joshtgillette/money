@@ -1,37 +1,53 @@
 from difflib import SequenceMatcher
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from accounts.adapters.account import Account
 from accounts.adapters.credit.credit_card import CreditCard
 from transaction import Transaction
 
+if TYPE_CHECKING:
+    from accounts.banker import Banker
+
 
 class TransferTagger:
-    def __init__(self, banker):
+    """Identifies and tags internal transfers between bank accounts."""
+
+    def __init__(self, banker: "Banker") -> None:
+        """Initialize the transfer tagger with a banker instance.
+        
+        Args:
+            banker: The banker instance containing all accounts and transactions
+        """
         self.banker = banker
 
     def identify_transfers(self) -> None:
+        """Identify internal transfers between bank accounts.
+        
+        Identification is dependent on relating a candidate transfer's sending and 
+        receiving account to the transfer and counter-transfer's descriptions along 
+        with a confidence value indicating the frequency of transfers with the same 
+        descriptions between the accounts.
+
+        Process:
+            Phase 1: Build the account-transfer-description (ATD) confidence directory 
+                     that relates a potential transfer's sending and receiving account 
+                     by the transactions' descriptions.
+                1. For each transaction, find a sole counter transaction indicating a transfer
+                2. Link the sending and receiving accounts by the transfer's description 
+                   pair with a confidence value
+                   
+            Phase 2: Identify transactions with accounts and descriptions in the ATD 
+                     confidence mapping that have the highest confidence value.
+
+        These phases repeat until transfers are no longer identified.
         """
-        Identify internal transfers between bank accounts. Identification is dependent on relating a candidate
-        transfer's sending and receiving account to the transfer and counter-transfer's descriptions along with
-        a confidence value indicating the frequency of transfer's with the same descriptions between the accounts.
 
-        phase 1: build the account-transfer-description (ATD) confidence directory that relates a potential
-                 transfer's sending and receiving account by the transactions' descriptions.
-            1. For each transaction, find a sole counter transaction indicating a transfer
-            2. Link the sending and receiving accounts by the transfer's description pair with a confidence value
-        phase 2: identify transactions with accounts and descriptions in the ATD confidence mapping that have both the highest confidence value.
-
-        repeat these phases until transfers are no longer identified
-        """
-
-        atd_confidence: Dict[
-            str, Dict[str, List[List[Tuple[str, str, float]]]]
-        ] = {}  # sending account name: {
+        atd_confidence: Dict[str, Dict[str, List[List[Any]]]] = {}  # sending account name: {
         #    receiving account name: [
         #        [from account transaction description,
         #         to account transaction description,
-        #         confidence value],
+        #         confidence value,
+        #         tracking key],
         #    ]
         # }
         passes_ran: int = 0
@@ -138,14 +154,19 @@ class TransferTagger:
                     description_pairs = atd_confidence.get(
                         sending_account.name, {}
                     ).get(receiving_account.name, [])
+                    
                     sending_description: Optional[str]
                     receiving_description: Optional[str]
                     confidence: int
-                    sending_description, receiving_description, confidence, _ = (
-                        max(description_pairs, key=lambda dp: dp[2])
-                        if description_pairs
-                        else (None, None, 0, None)
-                    )
+                    if description_pairs:
+                        max_pair: List[Any] = max(description_pairs, key=lambda dp: dp[2])
+                        sending_description = max_pair[0]  # Already a str
+                        receiving_description = max_pair[1]  # Already a str
+                        confidence = max_pair[2]  # Already an int
+                    else:
+                        sending_description = None
+                        receiving_description = None
+                        confidence = 0
 
                     # If the confidence is highest, mark the transactions as a transfer!
                     if (
@@ -180,7 +201,15 @@ class TransferTagger:
     def find_counter_transactions(
         self, account: Account, transaction: Transaction
     ) -> List[Tuple[Account, Transaction]]:
-        """Find potential matching transactions that could represent transfers."""
+        """Find potential matching transactions that could represent transfers.
+        
+        Args:
+            account: The account containing the transaction to match
+            transaction: The transaction to find counter-transactions for
+            
+        Returns:
+            List of tuples containing (account, transaction) pairs that could be transfers
+        """
         return [
             (a, t)
             for a, t in self.banker
@@ -196,7 +225,16 @@ class TransferTagger:
     def equate_transaction_descriptions(
         self, d1: Optional[str], d2: str, threshold: float = 0.90
     ) -> bool:
-        """Compare two transaction descriptions for similarity above a threshold."""
+        """Compare two transaction descriptions for similarity above a threshold.
+        
+        Args:
+            d1: First description to compare (can be None)
+            d2: Second description to compare
+            threshold: Similarity threshold (default: 0.90)
+            
+        Returns:
+            True if descriptions are similar above the threshold, False otherwise
+        """
         if d1 is None:
             return False
         return SequenceMatcher(None, d1, d2).ratio() >= threshold
@@ -229,16 +267,37 @@ class TransferTagger:
     def set_transfer(
         self, account: Account, transaction_index: int, value: bool = True
     ) -> None:
-        """Mark a transaction as a transfer or not."""
+        """Mark a transaction as a transfer or not.
+        
+        Args:
+            account: The account containing the transaction
+            transaction_index: Index of the transaction to mark
+            value: Whether to mark as transfer (default: True)
+        """
         if transaction_index in account.transactions:
             account.transactions[transaction_index].TRANSFER = value
 
     def transfer(self, account: Account, transaction_index: int) -> bool:
-        """Check if a transaction is marked as a transfer."""
+        """Check if a transaction is marked as a transfer.
+        
+        Args:
+            account: The account containing the transaction
+            transaction_index: Index of the transaction to check
+            
+        Returns:
+            True if the transaction is marked as a transfer, False otherwise
+        """
         if transaction_index in account.transactions:
             return account.transactions[transaction_index].transfer
         return False
 
     def format_amount(self, amount: float) -> str:
-        """Format a transaction amount as a currency string with sign."""
+        """Format a transaction amount as a currency string with sign.
+        
+        Args:
+            amount: The transaction amount to format
+            
+        Returns:
+            Formatted currency string with sign (e.g., "-$50.00" or "$100.00")
+        """
         return f"-${abs(amount):.2f}" if amount < 0 else f"${abs(amount):.2f}"
