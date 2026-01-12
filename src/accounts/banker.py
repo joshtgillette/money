@@ -82,7 +82,7 @@ class Banker:
         """Write transactions to CSV files, optionally grouped by month."""
         transaction_data = pd.DataFrame(
             [transaction.to_dict() for transaction in transactions]
-        ).sort_values("date")
+        ).sort_values("date", ascending=False)
         if not by_month:
             # Write all transactions
             path = path.with_suffix(".csv")
