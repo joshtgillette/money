@@ -17,4 +17,7 @@ class Apple(CreditCard):
         self.description_normalizer = lambda df: df["Description"]
 
     def is_transaction_interest(self, transaction: Transaction) -> bool:
-        return "interest" in transaction.description.lower()
+        return (
+            "interest" in transaction.description.lower()
+            or transaction.description == "DAILY CASH ADJUSTMENT"
+        )
