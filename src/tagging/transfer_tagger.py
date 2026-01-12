@@ -42,13 +42,12 @@ class TransferTagger:
         These phases repeat until transfers are no longer identified.
         """
 
-        atd_confidence: Dict[
-            str, Dict[str, List[List[Tuple[str, str, float]]]]
-        ] = {}  # sending account name: {
+        atd_confidence: Dict[str, Dict[str, List[List[Any]]]] = {}  # sending account name: {
         #    receiving account name: [
         #        [from account transaction description,
         #         to account transaction description,
-        #         confidence value],
+        #         confidence value,
+        #         tracking key],
         #    ]
         # }
         passes_ran: int = 0
@@ -161,9 +160,9 @@ class TransferTagger:
                     confidence: int
                     if description_pairs:
                         max_pair: List[Any] = max(description_pairs, key=lambda dp: dp[2])
-                        sending_description = str(max_pair[0])
-                        receiving_description = str(max_pair[1])
-                        confidence = int(max_pair[2])
+                        sending_description = max_pair[0]  # Already a str
+                        receiving_description = max_pair[1]  # Already a str
+                        confidence = max_pair[2]  # Already an int
                     else:
                         sending_description = None
                         receiving_description = None
