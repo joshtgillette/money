@@ -3,7 +3,7 @@
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Dict
+from typing import Callable, Dict, List
 
 from accounts.adapters.account import Account
 from accounts.adapters.bank.apple import Apple
@@ -82,7 +82,7 @@ class Advisor:
         # Wipe processed transactions for fresh write
         shutil.rmtree(self.PROCESSED_TRANSACTIONS_PATH, ignore_errors=True)
 
-        # Write transactions as a whole and by month
+        # Record transactions as a whole and by month
         self.banker.write_transactions(
             all_transactions, self.PROCESSED_TRANSACTIONS_PATH / "all"
         )
@@ -90,7 +90,7 @@ class Advisor:
             all_transactions, self.PROCESSED_TRANSACTIONS_PATH / "months", by_month=True
         )
 
-        # Write transactions by account
+        # Record transactions by account
         for account_name, account in self.banker.accounts.items():
             if account.transactions:
                 self.banker.write_transactions(
@@ -101,24 +101,36 @@ class Advisor:
                     ["date", "amount", "description", "tags"],
                 )
 
-        # Write transactions by tag
-        [
+        # Record tagged transactions
+        print()
+        for tag in self.tag_manager.get_all_tags(True):
+            tagged_transactions: List[Transaction] = self.banker.filter_transactions(
+                lambda transaction: getattr(transaction, tag, False)
+            )
+
+            print(
+                f"tagged {len(tagged_transactions)} transactions as {tag.lower()} "
+                f"for ${abs(sum(transaction.amount for transaction in tagged_transactions)):,.2f}"
+            )
+
             self.banker.write_transactions(
-                self.banker.filter_transactions(
-                    lambda transaction: getattr(transaction, tag, False)
-                ),
+                tagged_transactions,
                 self.PROCESSED_TRANSACTIONS_PATH
                 / self.tag_manager.TAGGED_PATH
                 / tag.lower(),
             )
-            for tag in self.tag_manager.get_all_tags()
-        ]
+        print()
 
-        # Write transactions with no tags
+        # Record untagged transactions
+        untagged_transactions = self.banker.filter_transactions(
+            lambda transaction: not transaction.get_tags()
+        )
+        print(
+            f"{len(untagged_transactions)} transactions untagged "
+            f"for ${abs(sum(transaction.amount for transaction in untagged_transactions)):,.2f}"
+        )
         self.banker.write_transactions(
-            self.banker.filter_transactions(
-                lambda transaction: not transaction.get_tags()
-            ),
+            untagged_transactions,
             self.PROCESSED_TRANSACTIONS_PATH
             / self.tag_manager.TAGGED_PATH
             / "untagged",

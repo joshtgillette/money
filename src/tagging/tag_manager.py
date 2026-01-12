@@ -23,10 +23,10 @@ class TagManager:
         self.banker: Banker = banker
         self.taggers = taggers
 
-    def get_all_tags(self) -> set[str]:
+    def get_all_tags(self, ignore_tag_source=False) -> set[str]:
         """Extract all unique tags from stored tag mappings."""
         return set(
-            tag.strip()
+            (tag.strip().lower() if ignore_tag_source else tag.strip())
             for _, transaction in self.banker
             for tag in transaction.get_tags()
             if tag.strip()

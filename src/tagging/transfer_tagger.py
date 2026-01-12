@@ -157,16 +157,16 @@ class TransferTagger:
                             receiving_description, receiving_transaction.description
                         )
                     ):
-                        print(
-                            f"transaction of {self.format_amount(sending_transaction.amount)} from "
-                            f"{sending_account.name} to {receiving_account.name} ({sending_transaction.description}) "
-                            "is transfer"
-                        )
-                        print(
-                            f"transaction of {self.format_amount(receiving_transaction.amount)} from "
-                            f"{receiving_account.name} to {sending_account.name} ({receiving_transaction.description}) "
-                            "is transfer"
-                        )
+                        # print(
+                        #     f"transaction of {self.format_amount(sending_transaction.amount)} from "
+                        #     f"{sending_account.name} to {receiving_account.name} ({sending_transaction.description}) "
+                        #     "is transfer"
+                        # )
+                        # print(
+                        #     f"transaction of {self.format_amount(receiving_transaction.amount)} from "
+                        #     f"{receiving_account.name} to {sending_account.name} ({receiving_transaction.description}) "
+                        #     "is transfer"
+                        # )
                         self.set_transfer(account, transaction.index)
                         self.set_transfer(counter_account, counter_transaction.index)
                         transfers_in_pass += 1
@@ -174,7 +174,7 @@ class TransferTagger:
             if not transfers_in_pass:
                 break
             passes_ran += 1
-            print(f"{transfers_in_pass} transfers identified in pass {passes_ran}\n")
+            # print(f"{transfers_in_pass} transfers identified in pass {passes_ran}\n")
             transfers_in_pass = 0
 
     def find_counter_transactions(
