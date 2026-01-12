@@ -1,8 +1,12 @@
 # Money - Personal Finance Manager
 
-A Python-based personal finance management system that normalizes and organizes transactions from multiple banks and credit cards.
+A Python-based personal finance management system that normalizes and organizes transactions from multiple banks and credit cards. Features comprehensive type hints and docstrings for maintainability and code quality.
 
 ## Features
+
+### Type Safety & Documentation
+
+The codebase includes comprehensive type hints and docstrings for all classes and methods, ensuring code maintainability and enabling better IDE support with autocompletion and type checking.
 
 ### Transaction Normalization
 
@@ -71,10 +75,16 @@ money/
    pip install pandas
    ```
 
-2. Place your bank CSV files in the `sources/` directory
+2. (Optional) For development, install type checking tools:
+
+   ```bash
+   pip install mypy ruff
+   ```
+
+3. Place your bank CSV files in the `sources/` directory
    - Name files using lowercase account names (e.g., `sofi checking.csv`, `apple card.csv`)
 
-3. Run the program:
+4. Run the program:
    ```bash
    python src/main.py
    ```
@@ -107,7 +117,25 @@ To add support for a new bank:
 3. Define normalizer functions for date, amount, and description columns
 4. Add the adapter to the `Advisor` class in `src/advisor.py`
 
-See existing adapters for examples.
+See existing adapters for examples. All adapters include comprehensive docstrings and type hints.
+
+## Development
+
+### Type Checking
+
+The codebase is fully typed and can be verified using mypy:
+
+```bash
+mypy src/ --ignore-missing-imports
+```
+
+### Code Quality
+
+Check for code quality issues with ruff:
+
+```bash
+ruff check src/
+```
 
 ## Usage
 
