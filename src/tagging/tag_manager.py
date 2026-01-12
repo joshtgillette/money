@@ -23,8 +23,15 @@ class TagManager:
         self.banker: Banker = banker
         self.taggers = taggers
 
-    def get_all_tags(self, ignore_tag_source=False) -> set[str]:
-        """Extract all unique tags from stored tag mappings."""
+    def get_all_tags(self, ignore_tag_source: bool = False) -> set[str]:
+        """Extract all unique tags from stored tag mappings.
+        
+        Args:
+            ignore_tag_source: If True, converts tags to lowercase (default: False)
+            
+        Returns:
+            Set of unique tag strings
+        """
         return set(
             (tag.strip().lower() if ignore_tag_source else tag.strip())
             for _, transaction in self.banker
@@ -33,7 +40,14 @@ class TagManager:
         )
 
     def get_existing_tags(self, tagging_path: Path) -> Dict[str, str]:
-        """Load previously saved tags from CSV files in the specified path."""
+        """Load previously saved tags from CSV files in the specified path.
+        
+        Args:
+            tagging_path: Path to directory containing tagged transaction CSV files
+            
+        Returns:
+            Dictionary mapping transaction hashes to their tag strings
+        """
         existing_tags: Dict[str, str] = {}
         for csv_path in self.banker.discover_csvs(tagging_path):
             transactions: Dict[int, Transaction] = self.banker.load_transactions(
@@ -48,8 +62,12 @@ class TagManager:
 
         return existing_tags
 
-    def apply_tags(self, existing_tags) -> None:
-        """Apply loaded tags to matching transactions in the banker's accounts."""
+    def apply_tags(self, existing_tags: Dict[str, str]) -> None:
+        """Apply loaded tags to matching transactions in the banker's accounts.
+        
+        Args:
+            existing_tags: Dictionary mapping transaction hashes to tag strings
+        """
         for _, transaction in self.banker:
             tags: str | None = existing_tags.get(transaction.hash(), None)
             if not tags:
@@ -58,6 +76,7 @@ class TagManager:
             transaction.set_tags(tags)
 
     def auto_tag(self) -> None:
+        """Automatically apply tags to transactions based on configured tag evaluators."""
         for tag in self.get_all_tags():
             if tag.islower():
                 continue
