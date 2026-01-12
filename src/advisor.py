@@ -1,8 +1,11 @@
 """Personal finance advisor that orchestrates transaction loading, tagging, and reporting."""
 
 import shutil
+from datetime import datetime
 from pathlib import Path
+from typing import Callable, Dict, List
 
+from accounts.adapters.account import Account
 from accounts.adapters.bank.apple import Apple
 from accounts.adapters.bank.esl import ESL
 from accounts.adapters.bank.pnc import PNC
@@ -11,15 +14,32 @@ from accounts.adapters.credit.apple import Apple as AppleCredit
 from accounts.adapters.credit.chase import Chase
 from accounts.adapters.credit.wells_fargo import WellsFargo
 from accounts.banker import Banker
-from tagger import Tagger
+from tagging.tag_manager import TagManager
+from tagging.transfer_tagger import TransferTagger
+from transaction import Transaction
 
 
 class Advisor:
     """Orchestrates loading, tagging, and organizing financial transactions."""
 
-    SOURCE_TRANSACTIONS_PATH: Path = Path("source transactions")
+    SOURCE_TRANSACTIONS_PATH: Path = Path("sources")
     PROCESSED_TRANSACTIONS_PATH: Path = Path("transactions")
     TAGGING_PATH: Path = PROCESSED_TRANSACTIONS_PATH / "months"
+    TAGGERS: Dict[str, Callable[[Account, Transaction], bool] | TransferTagger] = {
+        "INCOME": lambda account, transaction: transaction.amount > 0
+        and account.is_transaction_income(transaction),
+        "INTEREST": lambda account, transaction: account.is_transaction_interest(
+            transaction
+        ),
+        "RENO": lambda account, transaction: isinstance(account, Chase)
+        and transaction.date > datetime(2025, 9, 1),
+        "SUBSCRIPTIONS": lambda account, transaction: "APPLE.COM/BILL"
+        in transaction.description
+        or "HBOMAX.COM" in transaction.description
+        or "GITHUB.COM" in transaction.description,
+        "INVESTMENTS": lambda account, transaction: transaction.description
+        in ["FID BKG SVC LLC", "FIDELITY INVESTMENTS WITH UMB BANK"],
+    }
 
     def __init__(self) -> None:
         """Initialize the advisor with supported bank accounts and tagging system."""
@@ -35,11 +55,12 @@ class Advisor:
             WellsFargo("Wells Fargo Credit Card"),
             Chase("Chase Credit Card"),
         )
-        self.tagger: Tagger = Tagger(self.banker)
+        self.TAGGERS["TRANSFER"] = TransferTagger(self.banker)
+        self.tag_manager: TagManager = TagManager(self.banker, self.TAGGERS)
 
     def advise(self) -> None:
         """Load transactions, apply tags, and generate organized transaction reports."""
-        self.tagger.load_existing_tags(self.TAGGING_PATH)
+        existing_tags = self.tag_manager.get_existing_tags(self.TAGGING_PATH)
 
         # Direct the banker to load transactions for the provided accounts
         self.banker.load_account_transactions(self.SOURCE_TRANSACTIONS_PATH)
@@ -55,12 +76,13 @@ class Advisor:
             )
 
         # Apply tags to loaded transactions
-        self.tagger.apply_tags()
+        self.tag_manager.apply_tags(existing_tags)
+        self.tag_manager.auto_tag()
 
         # Wipe processed transactions for fresh write
         shutil.rmtree(self.PROCESSED_TRANSACTIONS_PATH, ignore_errors=True)
 
-        # Write transactions as a whole and by month
+        # Record transactions as a whole and by month
         self.banker.write_transactions(
             all_transactions, self.PROCESSED_TRANSACTIONS_PATH / "all"
         )
@@ -68,7 +90,7 @@ class Advisor:
             all_transactions, self.PROCESSED_TRANSACTIONS_PATH / "months", by_month=True
         )
 
-        # Write transactions by account
+        # Record transactions by account
         for account_name, account in self.banker.accounts.items():
             if account.transactions:
                 self.banker.write_transactions(
@@ -79,13 +101,37 @@ class Advisor:
                     ["date", "amount", "description", "tags"],
                 )
 
-        # Write transactions by tag
-        [
-            self.banker.write_transactions(
-                self.banker.filter_transactions(
-                    lambda t: getattr(t, tag.replace(" ", "_"), False)
-                ),
-                self.PROCESSED_TRANSACTIONS_PATH / self.tagger.TAGS_PATH / tag,
+        # Record tagged transactions
+        print()
+        for tag in self.tag_manager.get_all_tags(True):
+            tagged_transactions: List[Transaction] = self.banker.filter_transactions(
+                lambda transaction: getattr(transaction, tag, False)
             )
-            for tag in self.tagger.get_all_tags()
-        ]
+
+            print(
+                f"tagged {len(tagged_transactions)} transactions as {tag.lower()} "
+                f"for ${abs(sum(transaction.amount for transaction in tagged_transactions)):,.2f}"
+            )
+
+            self.banker.write_transactions(
+                tagged_transactions,
+                self.PROCESSED_TRANSACTIONS_PATH
+                / self.tag_manager.TAGGED_PATH
+                / tag.lower(),
+            )
+        print()
+
+        # Record untagged transactions
+        untagged_transactions = self.banker.filter_transactions(
+            lambda transaction: not transaction.get_tags()
+        )
+        print(
+            f"{len(untagged_transactions)} transactions untagged "
+            f"for ${abs(sum(transaction.amount for transaction in untagged_transactions)):,.2f}"
+        )
+        self.banker.write_transactions(
+            untagged_transactions,
+            self.PROCESSED_TRANSACTIONS_PATH
+            / self.tag_manager.TAGGED_PATH
+            / "untagged",
+        )

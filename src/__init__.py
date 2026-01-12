@@ -1,0 +1,1 @@
+"""Money management application package."""
