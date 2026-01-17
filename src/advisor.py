@@ -31,7 +31,7 @@ class Advisor:
         "INTEREST": lambda account, transaction: account.is_transaction_interest(
             transaction
         ),
-        "RENO": lambda account, transaction: isinstance(account, Chase)
+        "HOUSE": lambda account, transaction: isinstance(account, Chase)
         and transaction.date > datetime(2025, 9, 1),
         "SUBSCRIPTIONS": lambda account, transaction: "APPLE.COM/BILL"
         in transaction.description
