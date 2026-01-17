@@ -16,7 +16,7 @@ class SoFi(BankAccount):
         self.amount_normalizer = lambda df: pd.to_numeric(df["Amount"])
         self.description_normalizer = lambda df: df["Description"]
 
-    def is_transaction_income(self, transaction: Transaction) -> bool:
+    def is_transaction_paycheck(self, transaction: Transaction) -> bool:
         return transaction.description == "COMCAST (CC) OF"
 
     def is_transaction_interest(self, transaction: Transaction) -> bool:

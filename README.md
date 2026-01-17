@@ -30,7 +30,7 @@ After running the program, edit `transactions/months/0525.csv`:
 
 ```csv
 date,amount,description,tags
-2024-05-15,1500.0,PAYROLL DEPOSIT,income
+2024-05-15,1500.0,PAYROLL DEPOSIT,paycheck
 2024-05-16,-45.5,AMAZON PURCHASE,shopping|home improvement
 2024-05-20,-120.0,ELECTRIC COMPANY,utilities
 ```

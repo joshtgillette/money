@@ -26,8 +26,8 @@ class Advisor:
     PROCESSED_TRANSACTIONS_PATH: Path = Path("transactions")
     TAGGING_PATH: Path = PROCESSED_TRANSACTIONS_PATH / "months"
     TAGGERS: Dict[str, Callable[[Account, Transaction], bool] | TransferTagger] = {
-        "INCOME": lambda account, transaction: transaction.amount > 0
-        and account.is_transaction_income(transaction),
+        "PAYCHECK": lambda account, transaction: transaction.amount > 0
+        and account.is_transaction_paycheck(transaction),
         "INTEREST": lambda account, transaction: account.is_transaction_interest(
             transaction
         ),

@@ -22,7 +22,7 @@ class Apple(BankAccount):
         ].eq("Credit").map({True: 1, False: -1})
         self.description_normalizer: Callable = lambda df: df["Description"]
 
-    def is_transaction_income(self, transaction: Transaction) -> bool:
+    def is_transaction_paycheck(self, transaction: Transaction) -> bool:
         return transaction.description == "ACH Transfer from COMCAST (CC) OF PAYROLL"
 
     def is_transaction_interest(self, transaction: Transaction) -> bool:

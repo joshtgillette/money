@@ -27,7 +27,7 @@ class Account(ABC):
 
     def add_source_transactions(self, csv_path: Path) -> None:
         """Load and concatenate transactions from a CSV file.
-        
+
         Args:
             csv_path: Path to the CSV file containing transaction data
         """
@@ -39,7 +39,7 @@ class Account(ABC):
 
     def normalize_source_transactions(self) -> pd.DataFrame:
         """Apply account-specific normalizers to transform source data into standard format.
-        
+
         Returns:
             DataFrame with normalized transaction data in standard format
         """
@@ -50,23 +50,23 @@ class Account(ABC):
             description=self.description_normalizer,
         )
 
-    def is_transaction_income(self, transaction: Transaction) -> bool:
-        """Determine if a transaction represents income.
-        
+    def is_transaction_paycheck(self, transaction: Transaction) -> bool:
+        """Determine if a transaction represents paycheck.
+
         Args:
             transaction: The transaction to check
-            
+
         Returns:
-            True if the transaction is income, False otherwise
+            True if the transaction is paycheck, False otherwise
         """
         return False
 
     def is_transaction_interest(self, transaction: Transaction) -> bool:
         """Determine if a transaction represents interest payment.
-        
+
         Args:
             transaction: The transaction to check
-            
+
         Returns:
             True if the transaction is interest, False otherwise
         """
@@ -74,10 +74,10 @@ class Account(ABC):
 
     def is_return_candidate(self, transaction: Transaction) -> bool:
         """Determine if a transaction could be a return or refund.
-        
+
         Args:
             transaction: The transaction to check
-            
+
         Returns:
             True if the transaction could be a return, False otherwise
         """
@@ -90,10 +90,10 @@ class Account(ABC):
         self, return_transaction: Transaction
     ) -> Optional[Transaction]:
         """Find the original transaction that this return is refunding.
-        
+
         Args:
             return_transaction: The return transaction to find the original for
-            
+
         Returns:
             The original transaction if found, None otherwise
         """

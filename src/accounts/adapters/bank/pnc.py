@@ -18,7 +18,7 @@ class PNC(BankAccount):
         )
         self.description_normalizer = lambda df: df["Transaction Description"]
 
-    def is_transaction_income(self, transaction: Transaction) -> bool:
+    def is_transaction_paycheck(self, transaction: Transaction) -> bool:
         return (
             transaction.description
             == "COMCAST (CC) OF PAYROLL ACH CREDIT xxxxxxxxxx6072"
