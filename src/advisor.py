@@ -119,19 +119,19 @@ class Advisor:
                 / self.tag_manager.TAGGED_PATH
                 / tag.lower(),
             )
-        print()
 
-        # Record untagged transactions
-        untagged_transactions = self.banker.filter_transactions(
+        # Transactions without tags are misc spending, record these transactions
+        misc_spending_transactions = self.banker.filter_transactions(
             lambda transaction: not transaction.get_tags()
         )
         print(
-            f"{len(untagged_transactions)} transactions untagged "
-            f"for ${abs(sum(transaction.amount for transaction in untagged_transactions)):,.2f}"
+            f"tagged {len(misc_spending_transactions)} transactions as misc spending "
+            f"for ${abs(sum(transaction.amount for transaction in misc_spending_transactions)):,.2f}"
         )
+
         self.banker.write_transactions(
-            untagged_transactions,
+            misc_spending_transactions,
             self.PROCESSED_TRANSACTIONS_PATH
             / self.tag_manager.TAGGED_PATH
-            / "untagged",
+            / "misc spending",
         )
