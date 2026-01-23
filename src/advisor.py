@@ -1,11 +1,9 @@
 """Personal finance advisor that orchestrates transaction loading, tagging, and reporting."""
 
 import shutil
-from datetime import datetime
 from pathlib import Path
-from typing import Callable, Dict, List
+from typing import List
 
-from accounts.adapters.account import Account
 from accounts.adapters.bank.apple import Apple
 from accounts.adapters.bank.esl import ESL
 from accounts.adapters.bank.pnc import PNC
@@ -15,7 +13,7 @@ from accounts.adapters.credit.chase import Chase
 from accounts.adapters.credit.wells_fargo import WellsFargo
 from accounts.banker import Banker
 from tagging.tag_manager import TagManager
-from tagging.transfer_tagger import TransferTagger
+from tagging.taggers import init_taggers
 from transaction import Transaction
 
 
@@ -25,21 +23,6 @@ class Advisor:
     SOURCE_TRANSACTIONS_PATH: Path = Path("sources")
     PROCESSED_TRANSACTIONS_PATH: Path = Path("transactions")
     TAGGING_PATH: Path = PROCESSED_TRANSACTIONS_PATH / "months"
-    TAGGERS: Dict[str, Callable[[Account, Transaction], bool] | TransferTagger] = {
-        "PAYCHECK": lambda account, transaction: transaction.amount > 0
-        and account.is_transaction_paycheck(transaction),
-        "INTEREST": lambda account, transaction: account.is_transaction_interest(
-            transaction
-        ),
-        "HOUSE": lambda account, transaction: isinstance(account, Chase)
-        and transaction.date > datetime(2025, 9, 1),
-        "SUBSCRIPTIONS": lambda account, transaction: "APPLE.COM/BILL"
-        in transaction.description
-        or "HBOMAX.COM" in transaction.description
-        or "GITHUB.COM" in transaction.description,
-        "INVESTMENTS": lambda account, transaction: transaction.description
-        in ["FID BKG SVC LLC", "FIDELITY INVESTMENTS WITH UMB BANK"],
-    }
 
     def __init__(self) -> None:
         """Initialize the advisor with supported bank accounts and tagging system."""
@@ -55,8 +38,9 @@ class Advisor:
             WellsFargo("Wells Fargo Credit Card"),
             Chase("Chase Credit Card"),
         )
-        self.TAGGERS["TRANSFER"] = TransferTagger(self.banker)
-        self.tag_manager: TagManager = TagManager(self.banker, self.TAGGERS)
+        self.tag_manager: TagManager = TagManager(
+            self.banker, init_taggers(self.banker)
+        )
 
     def advise(self) -> None:
         """Load transactions, apply tags, and generate organized transaction reports."""
