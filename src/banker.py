@@ -20,21 +20,25 @@ class Banker:
 
     def load_account_transactions(self, source_transactions_path: Path) -> None:
         """Load and normalize transactions from source CSV files for all accounts."""
-        for csv_path in self.discover_csvs(source_transactions_path):
+        for csv_path in list(source_transactions_path.rglob("*.csv")):
             account = self.accounts.get(csv_path.name.replace(".csv", ""), None)
             if not account:
                 continue
 
             account.add_source_transactions(csv_path)
 
-        # Normalize source transactions to a common format and load
-        for _, account in self.accounts.items():
+        print(
+            f"gathered {sum(len(account.source_transactions) for account in self.accounts.values())}"
+            f" transactions across {len(self.accounts)} accounts"
+        )
+
+        for account in self.accounts.values():
             account.normalize_source_transactions()
 
-    @staticmethod
-    def discover_csvs(path: Path) -> List[Path]:
-        """Recursively discover all CSV files in the given path."""
-        return list(path.rglob("*.csv"))
+        print(
+            f"loaded {sum([1 for _, _ in self])}"
+            f" transactions across {len(self.accounts)} accounts"
+        )
 
     def __iter__(self):
         for account in self.accounts.values():
@@ -42,10 +46,6 @@ class Banker:
                 yield account, transaction
 
     def filter_transactions(self, *predicates):
-        # Add account name to each transaction
-        for account in self.accounts.values():
-            account.transactions["account"] = account.name
-
         # Collect transactions based on predicates
         return pd.DataFrame(
             [

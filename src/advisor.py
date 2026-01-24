@@ -137,15 +137,6 @@ class Advisor:
         self.banker.load_account_transactions(self.SOURCE_TRANSACTIONS_PATH)
         all_transactions = self.banker.filter_transactions()
 
-        if len(all_transactions) == 0:
-            print("no transactions loaded.")
-            return
-        else:
-            print(
-                f"loaded {len(self.banker.accounts)} bank accounts "
-                f"with {len(all_transactions)} total transactions"
-            )
-
         # Wipe processed transactions for fresh write
         shutil.rmtree(self.PROCESSED_TRANSACTIONS_PATH, ignore_errors=True)
 
