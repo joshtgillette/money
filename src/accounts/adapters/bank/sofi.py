@@ -3,7 +3,6 @@
 import pandas as pd
 
 from accounts.adapters.bank.bank_account import BankAccount
-from transaction import Transaction
 
 
 class SoFi(BankAccount):
@@ -15,9 +14,3 @@ class SoFi(BankAccount):
         self.date_normalizer = lambda df: pd.to_datetime(df["Date"])
         self.amount_normalizer = lambda df: pd.to_numeric(df["Amount"])
         self.description_normalizer = lambda df: df["Description"]
-
-    def is_transaction_paycheck(self, transaction: Transaction) -> bool:
-        return transaction.description == "COMCAST (CC) OF"
-
-    def is_transaction_interest(self, transaction: Transaction) -> bool:
-        return transaction.description == "Interest earned"

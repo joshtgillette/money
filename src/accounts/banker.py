@@ -76,7 +76,7 @@ class Banker:
         self,
         transactions: List[Transaction],
         path: Path,
-        columns: List[str] = ["account", "date", "amount", "description", "tags"],
+        columns: List[str] = ["account", "date", "amount", "description"],
         by_month: bool = False,
     ) -> None:
         """Write transactions to CSV files, optionally grouped by month."""

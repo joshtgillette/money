@@ -12,8 +12,6 @@ from accounts.adapters.credit.apple import Apple as AppleCredit
 from accounts.adapters.credit.chase import Chase
 from accounts.adapters.credit.wells_fargo import WellsFargo
 from accounts.banker import Banker
-from tagging.tag_manager import TagManager
-from tagging.taggers import init_taggers
 from transaction import Transaction
 
 
@@ -22,7 +20,6 @@ class Advisor:
 
     SOURCE_TRANSACTIONS_PATH: Path = Path("sources")
     PROCESSED_TRANSACTIONS_PATH: Path = Path("transactions")
-    TAGGING_PATH: Path = PROCESSED_TRANSACTIONS_PATH / "months"
 
     def __init__(self) -> None:
         """Initialize the advisor with supported bank accounts and tagging system."""
@@ -38,14 +35,9 @@ class Advisor:
             WellsFargo("Wells Fargo Credit Card"),
             Chase("Chase Credit Card"),
         )
-        self.tag_manager: TagManager = TagManager(
-            self.banker, init_taggers(self.banker)
-        )
 
     def advise(self) -> None:
         """Load transactions, apply tags, and generate organized transaction reports."""
-        existing_tags = self.tag_manager.get_existing_tags(self.TAGGING_PATH)
-
         # Direct the banker to load transactions for the provided accounts
         self.banker.load_account_transactions(self.SOURCE_TRANSACTIONS_PATH)
         all_transactions = self.banker.filter_transactions()
@@ -58,10 +50,6 @@ class Advisor:
                 f"loaded {len(self.banker.accounts)} bank accounts "
                 f"with {len(all_transactions)} total transactions"
             )
-
-        # Apply tags to loaded transactions
-        self.tag_manager.apply_tags(existing_tags)
-        self.tag_manager.auto_tag()
 
         # Wipe processed transactions for fresh write
         shutil.rmtree(self.PROCESSED_TRANSACTIONS_PATH, ignore_errors=True)
@@ -82,40 +70,5 @@ class Advisor:
                     self.PROCESSED_TRANSACTIONS_PATH
                     / "accounts"
                     / account_name.lower(),
-                    ["date", "amount", "description", "tags"],
+                    ["date", "amount", "description"],
                 )
-
-        # Record tagged transactions
-        print()
-        for tag in self.tag_manager.get_all_tags(True):
-            tagged_transactions: List[Transaction] = self.banker.filter_transactions(
-                lambda transaction: getattr(transaction, tag, False)
-            )
-
-            print(
-                f"tagged {len(tagged_transactions)} transactions as {tag.lower()} "
-                f"for ${abs(sum(transaction.amount for transaction in tagged_transactions)):,.2f}"
-            )
-
-            self.banker.write_transactions(
-                tagged_transactions,
-                self.PROCESSED_TRANSACTIONS_PATH
-                / self.tag_manager.TAGGED_PATH
-                / tag.lower(),
-            )
-
-        # Transactions without tags are misc spending, record these transactions
-        misc_spending_transactions = self.banker.filter_transactions(
-            lambda transaction: not transaction.get_tags()
-        )
-        print(
-            f"tagged {len(misc_spending_transactions)} transactions as misc spending "
-            f"for ${abs(sum(transaction.amount for transaction in misc_spending_transactions)):,.2f}"
-        )
-
-        self.banker.write_transactions(
-            misc_spending_transactions,
-            self.PROCESSED_TRANSACTIONS_PATH
-            / self.tag_manager.TAGGED_PATH
-            / "misc spending",
-        )

@@ -3,7 +3,6 @@
 import pandas as pd
 
 from accounts.adapters.credit.credit_card import CreditCard
-from transaction import Transaction
 
 
 class Apple(CreditCard):
@@ -15,9 +14,3 @@ class Apple(CreditCard):
         self.date_normalizer = lambda df: pd.to_datetime(df["Transaction Date"])
         self.amount_normalizer = lambda df: pd.to_numeric(df["Amount (USD)"]) * -1
         self.description_normalizer = lambda df: df["Description"]
-
-    def is_transaction_interest(self, transaction: Transaction) -> bool:
-        return (
-            "interest" in transaction.description.lower()
-            or transaction.description == "DAILY CASH ADJUSTMENT"
-        )
