@@ -14,7 +14,6 @@ class Advisor:
     """Orchestrates loading, tagging, and organizing financial transactions."""
 
     SOURCE_TRANSACTIONS_PATH: Path = Path("sources")
-    PROCESSED_TRANSACTIONS_PATH: Path = Path("transactions")
 
     def __init__(self) -> None:
         """Initialize the advisor with supported bank accounts and tagging system."""
@@ -135,23 +134,3 @@ class Advisor:
         """Load transactions, apply tags, and generate organized transaction reports."""
         # Direct the banker to load transactions for the provided accounts
         self.banker.load_account_transactions(self.SOURCE_TRANSACTIONS_PATH)
-        all_transactions = self.banker.filter_transactions()
-
-        # Wipe processed transactions for fresh write
-        shutil.rmtree(self.PROCESSED_TRANSACTIONS_PATH, ignore_errors=True)
-
-        # Record transactions as a whole and by month
-        self.banker.write_transactions(
-            all_transactions, self.PROCESSED_TRANSACTIONS_PATH / "all"
-        )
-        self.banker.write_transactions(
-            all_transactions, self.PROCESSED_TRANSACTIONS_PATH / "months", by_month=True
-        )
-
-        # Record transactions by account
-        for account_name, account in self.banker.accounts.items():
-            self.banker.write_transactions(
-                account.transactions,
-                self.PROCESSED_TRANSACTIONS_PATH / "accounts" / account_name.lower(),
-                ["date", "amount", "description"],
-            )
