@@ -159,11 +159,8 @@ class Advisor:
 
         # Record transactions by account
         for account_name, account in self.banker.accounts.items():
-            if account.transactions:
-                self.banker.write_transactions(
-                    list(account.transactions.values()),
-                    self.PROCESSED_TRANSACTIONS_PATH
-                    / "accounts"
-                    / account_name.lower(),
-                    ["date", "amount", "description"],
-                )
+            self.banker.write_transactions(
+                account.transactions,
+                self.PROCESSED_TRANSACTIONS_PATH / "accounts" / account_name.lower(),
+                ["date", "amount", "description"],
+            )

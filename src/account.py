@@ -1,11 +1,9 @@
 """Base account class for financial institutions."""
 
 from pathlib import Path
-from typing import Callable, Dict
+from typing import Callable
 
 import pandas as pd
-
-from transaction import Transaction
 
 
 class Account:
@@ -37,7 +35,7 @@ class Account:
         self.header_val: int | None = header_val
 
         self.source_transactions: pd.DataFrame = pd.DataFrame()
-        self.transactions: Dict[int, Transaction] = {}
+        self.transactions: pd.DataFrame = pd.DataFrame()
 
     def add_source_transactions(self, csv_path: Path) -> None:
         """Load and concatenate transactions from a CSV file.
@@ -51,13 +49,13 @@ class Account:
             ignore_index=True,
         )
 
-    def normalize_source_transactions(self) -> pd.DataFrame:
+    def normalize_source_transactions(self) -> None:
         """Apply account-specific normalizers to transform source data into standard format.
 
         Returns:
             DataFrame with normalized transaction data in standard format
         """
-        return self.source_transactions.assign(
+        self.transactions = self.source_transactions.assign(
             account=self.name,
             date=self.date_normalizer(self.source_transactions),
             amount=self.amount_normalizer(self.source_transactions),
