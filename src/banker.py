@@ -9,10 +9,10 @@ from account import Account
 class Banker:
     """Manages financial accounts and provides operations for transaction handling."""
 
-    def __init__(self, *accounts: Account) -> None:
+    def __init__(self, *adapters: Account) -> None:
         """Initialize the banker with a collection of financial accounts."""
         self.accounts: Dict[str, Account] = {
-            account.name.lower(): account for account in accounts
+            account.name.lower(): account for account in adapters
         }
 
     def load_account_transactions(self, source_transactions_path: Path) -> None:
@@ -34,6 +34,7 @@ class Banker:
         # Normalize transactions to standard format
         for account in self.accounts.values():
             account.normalize_source_transactions()
+
         print(
             f"loaded {sum([len(account.transactions) for account in self.accounts.values()])}"
             f" transactions across {len(self.accounts)} accounts"
