@@ -113,7 +113,7 @@ class Advisor:
                 description_normalizer=lambda df: pd.Series(df["Description"]),
             ),
             Account(
-                "Wells Fargo Credit Card",
+                "Wells Fargo Active Cash",
                 date_normalizer=lambda df: pd.to_datetime(df.iloc[:, 0]),
                 amount_normalizer=lambda df: cast(
                     pd.Series, pd.to_numeric(df.iloc[:, 1])
@@ -122,7 +122,7 @@ class Advisor:
                 header_val=None,
             ),
             Account(
-                "Chase Credit Card",
+                "Chase Freedom Unlimited",
                 date_normalizer=lambda df: pd.to_datetime(df["Transaction Date"]),
                 amount_normalizer=lambda df: cast(
                     pd.Series, pd.to_numeric(df["Amount"])
