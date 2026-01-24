@@ -2,17 +2,12 @@
 
 import shutil
 from pathlib import Path
-from typing import List
+from typing import cast
 
-from accounts.adapters.bank.apple import Apple
-from accounts.adapters.bank.esl import ESL
-from accounts.adapters.bank.pnc import PNC
-from accounts.adapters.bank.sofi import SoFi
-from accounts.adapters.credit.apple import Apple as AppleCredit
-from accounts.adapters.credit.chase import Chase
-from accounts.adapters.credit.wells_fargo import WellsFargo
-from accounts.banker import Banker
-from transaction import Transaction
+import pandas as pd
+
+from account import Account
+from banker import Banker
 
 
 class Advisor:
@@ -24,16 +19,116 @@ class Advisor:
     def __init__(self) -> None:
         """Initialize the advisor with supported bank accounts and tagging system."""
         self.banker: Banker = Banker(
-            SoFi("SoFi Checking"),
-            SoFi("SoFi Savings"),
-            Apple("Apple Savings"),
-            PNC("PNC Checking"),
-            PNC("PNC Savings"),
-            ESL("ESL Checking"),
-            ESL("ESL Savings"),
-            AppleCredit("Apple Card"),
-            WellsFargo("Wells Fargo Credit Card"),
-            Chase("Chase Credit Card"),
+            Account(
+                "SoFi Checking",
+                date_normalizer=lambda df: pd.to_datetime(df["Date"]),
+                amount_normalizer=lambda df: cast(
+                    pd.Series, pd.to_numeric(df["Amount"])
+                ),
+                description_normalizer=lambda df: pd.Series(df["Description"]),
+            ),
+            Account(
+                "SoFi Savings",
+                date_normalizer=lambda df: pd.to_datetime(df["Date"]),
+                amount_normalizer=lambda df: cast(
+                    pd.Series, pd.to_numeric(df["Amount"])
+                ),
+                description_normalizer=lambda df: pd.Series(df["Description"]),
+            ),
+            Account(
+                "Apple Savings",
+                date_normalizer=lambda df: pd.to_datetime(df["Transaction Date"]),
+                amount_normalizer=lambda df: pd.to_numeric(df["Amount"])
+                * df["Transaction Type"]
+                .eq("Credit")
+                .map(lambda b: 1 if bool(b) else -1),
+                description_normalizer=lambda df: pd.Series(df["Description"]),
+            ),
+            Account(
+                "PNC Checking",
+                date_normalizer=lambda df: pd.to_datetime(df["Transaction Date"]),
+                amount_normalizer=lambda df: cast(
+                    pd.Series,
+                    pd.to_numeric(
+                        df["Amount"].str.replace(r"[\+\$\s]", "", regex=True)
+                    ),
+                ),
+                description_normalizer=lambda df: pd.Series(
+                    df["Transaction Description"]
+                ),
+            ),
+            Account(
+                "PNC Savings",
+                date_normalizer=lambda df: pd.to_datetime(df["Transaction Date"]),
+                amount_normalizer=lambda df: cast(
+                    pd.Series,
+                    pd.to_numeric(
+                        df["Amount"].str.replace(r"[\+\$\s]", "", regex=True)
+                    ),
+                ),
+                description_normalizer=lambda df: pd.Series(
+                    df["Transaction Description"]
+                ),
+            ),
+            Account(
+                "ESL Checking",
+                date_normalizer=lambda df: pd.to_datetime(df["Date"]),
+                amount_normalizer=lambda df: cast(
+                    pd.Series,
+                    pd.Series(pd.to_numeric(df["Amount Credit"].fillna(0)))
+                    + pd.Series(pd.to_numeric(df["Amount Debit"].fillna(0))),
+                ),
+                description_normalizer=lambda df: pd.Series(
+                    df["Description"]
+                    .astype("string")
+                    .fillna("")
+                    .str.cat(
+                        df["Memo"].astype("string").fillna("").str.strip(), sep=" "
+                    )
+                ),
+            ),
+            Account(
+                "ESL Savings",
+                date_normalizer=lambda df: pd.to_datetime(df["Date"]),
+                amount_normalizer=lambda df: cast(
+                    pd.Series,
+                    pd.Series(pd.to_numeric(df["Amount Credit"])).fillna(0)
+                    + pd.Series(pd.to_numeric(df["Amount Debit"])).fillna(0),
+                ),
+                description_normalizer=lambda df: pd.Series(
+                    df["Description"]
+                    .astype("string")
+                    .fillna("")
+                    .str.cat(
+                        df["Memo"].astype("string").fillna("").str.strip(), sep=" "
+                    )
+                ),
+            ),
+            Account(
+                "Apple Card",
+                date_normalizer=lambda df: pd.to_datetime(df["Transaction Date"]),
+                amount_normalizer=lambda df: pd.Series(
+                    pd.to_numeric(df["Amount (USD)"])
+                ).mul(-1),
+                description_normalizer=lambda df: pd.Series(df["Description"]),
+            ),
+            Account(
+                "Wells Fargo Credit Card",
+                date_normalizer=lambda df: pd.to_datetime(df.iloc[:, 0]),
+                amount_normalizer=lambda df: cast(
+                    pd.Series, pd.to_numeric(df.iloc[:, 1])
+                ),
+                description_normalizer=lambda df: pd.Series(df.iloc[:, 4]),
+                header_val=None,
+            ),
+            Account(
+                "Chase Credit Card",
+                date_normalizer=lambda df: pd.to_datetime(df["Transaction Date"]),
+                amount_normalizer=lambda df: cast(
+                    pd.Series, pd.to_numeric(df["Amount"])
+                ),
+                description_normalizer=lambda df: pd.Series(df["Description"]),
+            ),
         )
 
     def advise(self) -> None:

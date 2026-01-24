@@ -1,1 +1,0 @@
-"""Bank account adapters package."""

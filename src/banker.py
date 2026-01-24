@@ -6,7 +6,7 @@ from typing import Callable, Dict, Iterator, List, Tuple, cast
 
 import pandas as pd
 
-from accounts.adapters.account import Account
+from account import Account
 from transaction import Transaction
 
 
