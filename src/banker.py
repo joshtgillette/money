@@ -27,14 +27,16 @@ class Banker:
 
             account.add_source_transactions(csv_path)
 
-        print(
-            f"gathered {sum(len(account.source_transactions) for account in self.accounts.values())}"
-            f" transactions across {len(self.accounts)} accounts"
-        )
+        # Remove accounts without source transactions
+        self.accounts = {
+            name: account
+            for name, account in self.accounts.items()
+            if len(account.source_transactions)
+        }
 
+        # Normalize transactions to standard format
         for account in self.accounts.values():
             account.normalize_source_transactions()
-
         print(
             f"loaded {sum([1 for _, _ in self])}"
             f" transactions across {len(self.accounts)} accounts"
