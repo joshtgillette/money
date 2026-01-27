@@ -2,11 +2,12 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, cast
+from typing import Callable, Dict, Iterator, List
 
 import pandas as pd
 
 from account import Account
+from transaction import Transaction
 
 
 class Banker:
@@ -22,9 +23,16 @@ class Banker:
         self.transactions: pd.DataFrame
 
     def load_account_transactions(self, source_transactions_path: Path) -> None:
-        """Load and normalize transactions from source CSV files for all accounts."""
+        """Load and normalize transactions from source CSV files for all accounts.
+
+        Args:
+            source_transactions_path: Path to directory containing CSV transaction files.
+        """
+
         for csv_path in list(source_transactions_path.rglob("*.csv")):
-            account = self.accounts.get(csv_path.name.replace(".csv", ""), None)
+            account: Account | None = self.accounts.get(
+                csv_path.name.replace(".csv", ""), None
+            )
             if not account:
                 continue
 
@@ -41,41 +49,79 @@ class Banker:
         for account in self.accounts.values():
             account.normalize_source_transactions()
 
-        # Get aggregated transactions
-        self.transactions = pd.DataFrame(
-            [
-                transaction
-                for account in self.accounts.values()
-                for transaction in account.transactions.itertuples(index=True)
-            ]
-        ).sort_values("date", ascending=False)
-
         print(
+            "\n"
             f"loaded {sum([len(account.transactions) for account in self.accounts.values()])}"
             f" transactions across {len(self.accounts)} accounts"
+            "\n"
         )
 
-    def __iter__(self) -> Iterator[str]:
-        for transaction in self.transactions.itertuples(index=True):
-            transaction = cast(Any, transaction)
-            yield (
-                f"{transaction.account} on {pd.to_datetime(transaction.date).strftime('%B %d, %Y')} for "
-                f"{'-' if transaction.amount < 0 else ''}${abs(transaction.amount):,.2f} - {transaction.description}"
-            )
+    def filter_transactions(
+        self,
+        *predicates: Callable[[Transaction], bool],
+        reversed: bool = False,
+    ) -> List[Transaction]:
+        """Filter transactions across all accounts using provided predicate functions.
 
-    def write_book(self, transaction: str, tags: List[str]) -> None:
+        Args:
+            *predicates: Variable number of predicate functions that take a Transaction and return bool.
+            reversed: If True, sort transactions in reverse chronological order (newest first).
+
+        Returns:
+            List of filtered and sorted Transaction objects.
+        """
+
+        return sorted(
+            [
+                transaction
+                for transaction in self
+                if not predicates or all(pred(transaction) for pred in predicates)
+            ],
+            key=lambda t: t.date,
+            reverse=reversed,
+        )
+
+    def __iter__(self) -> Iterator[Transaction]:
+        """Iterate over all transactions across all accounts.
+
+        Yields:
+            Transaction objects with tags loaded from the book.
+        """
+
+        for account in self.accounts.values():
+            for transaction_df in account.transactions.itertuples(index=False):
+                transaction: Transaction = Transaction(transaction_df)
+                transaction.set_tags(
+                    self.get_existing_tags_for_transaction(transaction)
+                )
+                yield transaction
+
+    def write_book(self, transaction: Transaction, tags: List[str]) -> None:
+        """Write tags for a transaction to the book (persistent storage).
+
+        Args:
+            transaction: The transaction to tag.
+            tags: List of tag strings to add to this transaction.
+        """
+
         # Get up-to-date book
-        book = self.read_book()
+        book: Dict[str, List[str]] = self.read_book()
 
         # Update transaction tags from hash
-        book.update({transaction: book.get(transaction, []) + tags})
+        book.setdefault(transaction.hash(), []).extend(tags)
 
         # Perform file write
         with open(self.BOOK_PATH, "w") as book_file:
             json.dump(book, book_file, indent=2)
 
-    def read_book(self) -> Dict:
-        book = {}
+    def read_book(self) -> Dict[str, List[str]]:
+        """Read the book (transaction tags) from persistent storage.
+
+        Returns:
+            Dictionary mapping transaction hashes to lists of tag strings.
+        """
+
+        book: Dict[str, List[str]] = {}
         try:
             # Perform file read
             with open(self.BOOK_PATH, "r+") as book_file:
@@ -85,5 +131,25 @@ class Banker:
 
         return book
 
-    def get_existing_tags_for_transaction(self, transaction) -> List[str]:
-        return self.read_book().get(transaction, [])
+    def get_existing_tags_for_transaction(self, transaction: Transaction) -> List[str]:
+        """Get all existing tags for a specific transaction.
+
+        Args:
+            transaction: The transaction to get tags for.
+
+        Returns:
+            List of tag strings associated with this transaction.
+        """
+
+        return self.read_book().get(transaction.hash(), [])
+
+    def get_all_tags(self) -> set[str]:
+        """Get all unique tags used across all transactions.
+
+        Returns:
+            Set of all unique tag strings (lowercased) used in the book.
+        """
+
+        return {
+            value.lower() for values in self.read_book().values() for value in values
+        }
