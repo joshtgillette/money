@@ -93,4 +93,12 @@ ACCOUNT_ADAPTERS = [
         amount_normalizer=lambda df: cast(pd.Series, pd.to_numeric(df["Amount"])),
         description_normalizer=lambda df: pd.Series(df["Description"]),
     ),
+    Account(
+        "Discover It",
+        date_normalizer=lambda df: pd.to_datetime(df["Trans. Date"]),
+        amount_normalizer=lambda df: cast(pd.Series, pd.to_numeric(df["Amount"])).mul(
+            -1
+        ),
+        description_normalizer=lambda df: pd.Series(df["Description"]),
+    ),
 ]
