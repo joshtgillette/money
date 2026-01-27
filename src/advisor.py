@@ -7,7 +7,7 @@ from typing import Callable, List
 import pandas as pd
 from tabulate import tabulate
 
-from adapters import ACCOUNT_ADAPTERS
+from account_adapters import ACCOUNT_ADAPTERS
 from banker import Banker
 from transaction import Transaction
 
@@ -37,6 +37,7 @@ class Advisor:
         ]
         while True:
             # Display options
+            print()
             for num, (label, _) in enumerate(OPTIONS):
                 print(f"[{num + 1}] {label}", end="\t\t")
             print()
@@ -54,7 +55,6 @@ class Advisor:
                 print(
                     f"error: option # not from {min(1, len(OPTIONS))} to {len(OPTIONS)}"
                 )
-            print()
         print()
 
     def tag(self) -> None:
@@ -127,7 +127,7 @@ class Advisor:
             *predicates
         )
         if not filtered_transactions:
-            print("no transactions for query")
+            print("\nno transactions for query")
             return
 
         print(

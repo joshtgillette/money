@@ -53,7 +53,6 @@ class Banker:
             "\n"
             f"loaded {sum([len(account.transactions) for account in self.accounts.values()])}"
             f" transactions across {len(self.accounts)} accounts"
-            "\n"
         )
 
     def filter_transactions(
