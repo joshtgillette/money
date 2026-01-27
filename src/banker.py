@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Callable, Dict, Iterator, List
 
+import numpy as np
 import pandas as pd
 
 from account import Account
@@ -51,8 +52,9 @@ class Banker:
 
         print(
             "\n"
-            f"loaded {sum([len(account.transactions) for account in self.accounts.values()])}"
-            f" transactions across {len(self.accounts)} accounts"
+            f"loaded {len(self.accounts)} accounts with "
+            f"{sum([len(account.transactions) for account in self.accounts.values()]):,} total transactions, "
+            f"{int(np.mean([1 if len(transaction.tags) > 0 else 0 for transaction in self]) * 100)}% tagged"
         )
 
     def filter_transactions(
