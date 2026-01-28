@@ -1,5 +1,6 @@
 from argparse import _SubParsersAction
 from pathlib import Path
+from shutil import copy2
 
 import pandas as pd
 
@@ -38,6 +39,11 @@ class Utilities:
                 args.src_path, args.dst_path, args.sort_col
             )
         )
+
+        backup_parser = subparsers.add_parser(
+            "backup", help="backup book.json to iCloud Drive"
+        )
+        backup_parser.set_defaults(func=lambda args: Utilities.backup_book())
 
     @staticmethod
     def combine_csvs(
@@ -114,3 +120,34 @@ class Utilities:
         dst_path.parent.mkdir(parents=True, exist_ok=True)
         combined_df.to_csv(dst_path, index=False)
         print(f"csv written to {dst_path} {sort_status}\n")
+
+    @staticmethod
+    def backup_book() -> None:
+        """
+        Copy book.json to iCloud Drive folder.
+
+        Raises:
+            FileNotFoundError: If book.json doesn't exist or iCloud Drive is not accessible
+        """
+        print()
+
+        # Define paths
+        book_path = Path("book.json")
+        icloud_path = Path.home() / "Library/Mobile Documents/com~apple~CloudDocs"
+        backup_path = icloud_path / "book.json"
+
+        # Check if book.json exists
+        if not book_path.exists():
+            raise FileNotFoundError(f"book.json not found at: {book_path.absolute()}\n")
+
+        # Check if iCloud Drive is accessible
+        if not icloud_path.exists():
+            raise FileNotFoundError(f"iCloud Drive not accessible at: {icloud_path}\n")
+
+        # Copy the file
+        try:
+            copy2(book_path, backup_path)
+            print("book successfully backed up to iCloud Drive\n")
+        except Exception as e:
+            print(f"✗ failed to backup book.json: {str(e)}\n")
+            raise
