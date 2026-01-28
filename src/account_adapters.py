@@ -73,6 +73,21 @@ ACCOUNT_ADAPTERS = [
         ),
     ),
     Account(
+        "ESL Shared",
+        date_normalizer=lambda df: pd.to_datetime(df["Date"]),
+        amount_normalizer=lambda df: cast(
+            pd.Series,
+            pd.Series(pd.to_numeric(df["Amount Credit"])).fillna(0)
+            + pd.Series(pd.to_numeric(df["Amount Debit"])).fillna(0),
+        ),
+        description_normalizer=lambda df: pd.Series(
+            df["Description"]
+            .astype("string")
+            .fillna("")
+            .str.cat(df["Memo"].astype("string").fillna("").str.strip(), sep=" ")
+        ),
+    ),
+    Account(
         "Apple Card",
         date_normalizer=lambda df: pd.to_datetime(df["Transaction Date"]),
         amount_normalizer=lambda df: pd.Series(pd.to_numeric(df["Amount (USD)"])).mul(
