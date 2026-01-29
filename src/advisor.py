@@ -2,7 +2,7 @@
 
 import re
 from pathlib import Path
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Tuple
 
 import pandas as pd
 from tabulate import tabulate
@@ -53,12 +53,24 @@ class Advisor:
                 continue
 
             # Display filtered transactions
+            focused_transactions_tabulated: List[Tuple[str, str, str, str, str]] = [
+                transaction.for_tabulate() for transaction in focused_transactions
+            ]
+            focused_total: float = sum(
+                transaction.amount for transaction in focused_transactions
+            )
             print(
                 f"\n{
                     tabulate(
-                        [
-                            transaction.for_tabulate()
-                            for transaction in focused_transactions
+                        focused_transactions_tabulated
+                        + [
+                            (
+                                '',
+                                '',
+                                f'= {"+" if focused_total > 0 else "-"}${abs(focused_total):,.2f}',
+                                '',
+                                '',
+                            )
                         ],
                         tablefmt='fancy_grid',
                         showindex=False,
